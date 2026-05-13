@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx --version)",
+      "Bash(export PATH=\"$PATH:/usr/local/bin:/opt/homebrew/bin\")",
+      "Bash(npm --version)",
+      "Read(//opt/homebrew/bin/**)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/jeissonmr/.nvm/**)",
+      "Read(//opt/**)",
+      "Bash(brew install *)",
+      "Bash(export PATH=\"/opt/homebrew/bin:$PATH\")",
+      "Bash(mkdir -p flutter)",
+      "Bash(cp -r finanzasjm/. flutter/)",
+      "Bash(rm -rf finanzasjm && ls)",
+      "Bash(npm install *)",
+      "Bash(nest new *)",
+      "Bash(npx prisma *)",
+      "Bash(npm run *)",
+      "Bash(flutter pub *)",
+      "Bash(flutter analyze *)",
+      "Bash(git init *)",
+      "Bash(git check-ignore *)",
+      "Bash(git rm *)",
+      "Bash(rm -rf .git)"
+    ],
+    "additionalDirectories": [
+      "/Users/jeissonmr/Documents/PROJECTS/finanzasJM/finanzasjm"
+    ]
+  }
+}

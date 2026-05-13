@@ -1,0 +1,51 @@
+name: finanzasjm
+description: "Sistema de finanzas personales"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Navigation
+  go_router: ^15.1.2
+
+  # HTTP
+  dio: ^5.8.0+1
+
+  # Secure storage (tokens)
+  flutter_secure_storage: ^9.2.4
+
+  # Models
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+
+  # Formatting
+  intl: ^0.20.2
+
+  # Local storage (preferencias ligeras)
+  shared_preferences: ^2.3.5
+
+  # UI extras
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.15
+  freezed: ^3.0.0
+  json_serializable: ^6.9.5
+  riverpod_generator: ^2.6.5
+  custom_lint: ^0.7.5
+  riverpod_lint: ^2.6.5
+
+flutter:
+  uses-material-design: true
