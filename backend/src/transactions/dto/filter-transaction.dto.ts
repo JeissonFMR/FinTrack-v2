@@ -1,8 +1,12 @@
 import { TransactionType } from '@prisma/client';
-import { IsDateString, IsEnum, IsOptional, IsUUID, IsInt, Min, Max } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsString, IsUUID, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class FilterTransactionDto {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
   @IsOptional()
   @IsUUID()
   accountId?: string;

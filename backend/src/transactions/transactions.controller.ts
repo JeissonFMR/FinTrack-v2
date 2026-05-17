@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -49,6 +50,15 @@ export class TransactionsController {
     @Body() dto: CreateTransactionDto,
   ) {
     return this.transactionsService.create(workspaceId, userId, dto);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: Partial<CreateTransactionDto>,
+  ) {
+    return this.transactionsService.update(workspaceId, id, dto);
   }
 
   @Delete(':id')

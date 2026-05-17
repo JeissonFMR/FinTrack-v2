@@ -68,9 +68,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Empieza a controlar tus finanzas',
-                  style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 15, color: context.colors.textSecondary),
                 ),
                 const SizedBox(height: 48),
                 TextFormField(
@@ -97,7 +97,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppColors.textHint,
+                        color: context.colors.textHint,
                         size: 20,
                       ),
                       onPressed: () => setState(() => _obscure = !_obscure),
@@ -121,8 +121,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('¿Ya tienes cuenta? ',
-                        style: TextStyle(color: AppColors.textSecondary)),
+                    Text('¿Ya tienes cuenta? ',
+                        style: TextStyle(color: context.colors.textSecondary)),
                     GestureDetector(
                       onTap: () => context.go('/login'),
                       child: const Text(

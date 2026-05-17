@@ -1,38 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
-import '../../../transactions/presentation/providers/transactions_provider.dart';
+import '../providers/accounts_provider.dart';
 
 class AccountsScreen extends ConsumerWidget {
   const AccountsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final accountsAsync = ref.watch(accountsListProvider);
+    final summaryAsync = ref.watch(accountsSummaryProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Cuentas')),
-      body: accountsAsync.when(
-        data: (accounts) {
-          final total = accounts.fold<double>(
-            0,
-            (sum, a) => sum + (a['balance'] as num).toDouble(),
-          );
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.push('/accounts/add'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        child: const Icon(Icons.add),
+      ),
+      body: summaryAsync.when(
+        data: (summary) {
+          final accounts = summary['accounts'] as List? ?? [];
+          final total = Formatters.decimal(summary['totalBalance']);
+
           return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(accountsListProvider),
+            onRefresh: () async => ref.invalidate(accountsSummaryProvider),
             color: AppColors.primary,
             child: ListView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
               children: [
                 _TotalCard(total: total),
                 const SizedBox(height: 24),
-                const Text(
-                  'Mis cuentas',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 12),
-                ...accounts.map((a) => _AccountCard(account: a)),
+                if (accounts.isEmpty)
+                  const _EmptyAccounts()
+                else ...[
+                  const Text(
+                    'Mis cuentas',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  ...accounts.map((a) => _AccountCard(account: a, ref: ref)),
+                ],
               ],
             ),
           );
@@ -80,20 +91,23 @@ class _TotalCard extends StatelessWidget {
 
 class _AccountCard extends StatelessWidget {
   final dynamic account;
-  const _AccountCard({required this.account});
+  final WidgetRef ref;
+  const _AccountCard({required this.account, required this.ref});
 
   @override
   Widget build(BuildContext context) {
-    final balance = (account['balance'] as num).toDouble();
-    final color = _parseColor(account['color'] as String? ?? '#6366F1');
+    final balance = Formatters.decimal(account['balance']);
+    final color = _hexColor(account['color'] as String? ?? '#18181B');
 
-    return Container(
+    return GestureDetector(
+      onLongPress: () => _showMenu(context),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Row(
         children: [
@@ -117,21 +131,75 @@ class _AccountCard extends StatelessWidget {
                 ),
                 Text(
                   _typeLabel(account['type'] as String),
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                 ),
               ],
             ),
           ),
           Text(
             Formatters.currency(balance, symbol: '\$'),
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              color: balance < 0 ? AppColors.expense : context.colors.textPrimary,
+            ),
           ),
         ],
+      ),
+    ));
+  }
+
+  void _showMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Editar cuenta'),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push('/accounts/edit', extra: Map<String, dynamic>.from(account as Map));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.archive_outlined, color: AppColors.expense),
+              title: const Text('Archivar cuenta', style: TextStyle(color: AppColors.expense)),
+              onTap: () {
+                Navigator.pop(ctx);
+                showDialog(
+                  context: context,
+                  builder: (d) => AlertDialog(
+                    title: const Text('Archivar cuenta'),
+                    content: Text('¿Archivar "${account['name']}"? Ya no aparecerá en tus cuentas activas.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(d), child: const Text('Cancelar')),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(d);
+                          ref.read(accountActionsProvider.notifier).archive(account['id'] as String);
+                        },
+                        style: TextButton.styleFrom(foregroundColor: AppColors.expense),
+                        child: const Text('Archivar'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Color _parseColor(String hex) {
+  Color _hexColor(String hex) {
     final h = hex.replaceAll('#', '');
     return Color(int.parse('FF$h', radix: 16));
   }
@@ -147,5 +215,30 @@ class _AccountCard extends StatelessWidget {
       'LOAN': 'Préstamo',
     };
     return labels[type] ?? type;
+  }
+}
+
+class _EmptyAccounts extends StatelessWidget {
+  const _EmptyAccounts();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 60),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(Icons.account_balance_wallet_outlined,
+                size: 48, color: context.colors.textHint),
+            const SizedBox(height: 12),
+            Text('Sin cuentas aún',
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 15)),
+            const SizedBox(height: 4),
+            Text('Toca + para agregar tu primera cuenta',
+                style: TextStyle(color: context.colors.textHint, fontSize: 13)),
+          ],
+        ),
+      ),
+    );
   }
 }

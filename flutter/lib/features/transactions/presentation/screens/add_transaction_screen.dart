@@ -5,11 +5,13 @@ import 'package:intl/intl.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/storage/token_storage.dart';
+import '../../../../core/utils/formatters.dart';
 import '../providers/transactions_provider.dart';
 import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
-  const AddTransactionScreen({super.key});
+  final Map<String, dynamic>? transaction;
+  const AddTransactionScreen({super.key, this.transaction});
 
   @override
   ConsumerState<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -25,6 +27,23 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   String? _categoryId;
   DateTime _date = DateTime.now();
   bool _loading = false;
+
+  bool get _isEditing => widget.transaction != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final tx = widget.transaction;
+    if (tx != null) {
+      _type = tx['type'] as String? ?? 'EXPENSE';
+      _accountId = tx['accountId'] as String? ?? (tx['account'] as Map?)?['id'] as String?;
+      _categoryId = tx['categoryId'] as String? ?? (tx['category'] as Map?)?['id'] as String?;
+      _descCtrl.text = tx['description'] as String? ?? '';
+      _amountCtrl.text = Formatters.decimal(tx['amount']).toStringAsFixed(0);
+      final dateStr = tx['date'] as String?;
+      if (dateStr != null) _date = DateTime.parse(dateStr);
+    }
+  }
 
   @override
   void dispose() {
@@ -49,16 +68,23 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       final storage = ref.read(tokenStorageProvider);
       final workspaceId = await storage.getWorkspaceId();
 
-      await api.post('/workspaces/$workspaceId/transactions', data: {
+      final body = {
         'accountId': _accountId,
         'categoryId': _categoryId,
         'type': _type,
         'amount': double.parse(_amountCtrl.text.replaceAll(',', '.')),
         'description': _descCtrl.text.trim(),
         'date': _date.toIso8601String(),
-      });
+      };
 
-      ref.invalidate(transactionsProvider);
+      if (_isEditing) {
+        final txId = widget.transaction!['id'] as String;
+        await api.patch('/workspaces/$workspaceId/transactions/$txId', data: body);
+      } else {
+        await api.post('/workspaces/$workspaceId/transactions', data: body);
+      }
+
+      ref.read(transactionsPaginationProvider.notifier).refresh();
       ref.invalidate(dashboardSummaryProvider);
       ref.invalidate(recentTransactionsProvider);
 
@@ -80,7 +106,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     final categories = ref.watch(categoriesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nuevo movimiento')),
+      appBar: AppBar(title: Text(_isEditing ? 'Editar movimiento' : 'Nuevo movimiento')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -211,9 +237,9 @@ class _TypeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Row(
         children: [
@@ -255,7 +281,7 @@ class _Tab extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-              color: isSelected ? color : AppColors.textSecondary,
+              color: isSelected ? color : context.colors.textSecondary,
             ),
           ),
         ),
@@ -286,7 +312,7 @@ class _DropdownField extends StatelessWidget {
       onChanged: onChanged,
       decoration: const InputDecoration(),
       isExpanded: true,
-      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textHint),
+      icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.colors.textHint),
     );
   }
 }

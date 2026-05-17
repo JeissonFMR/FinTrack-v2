@@ -20,4 +20,8 @@ class Formatters {
 
   static String monthYear(DateTime date) =>
       DateFormat('MMMM yyyy', 'es').format(date);
+
+  // Prisma v7 + adapter-pg returns Decimal fields as strings.
+  static double decimal(dynamic val) =>
+      val == null ? 0 : double.tryParse(val.toString()) ?? 0;
 }

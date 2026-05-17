@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { WorkspaceMemberRole } from '@prisma/client';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -18,6 +18,15 @@ export class WorkspacesController {
   @Get(':workspaceId')
   findOne(@Param('workspaceId') workspaceId: string, @CurrentUser('id') userId: string) {
     return this.workspacesService.findOne(workspaceId, userId);
+  }
+
+  @Patch(':workspaceId')
+  updateName(
+    @Param('workspaceId') workspaceId: string,
+    @CurrentUser('id') userId: string,
+    @Body('name') name: string,
+  ) {
+    return this.workspacesService.updateName(workspaceId, userId, name);
   }
 
   @Post()

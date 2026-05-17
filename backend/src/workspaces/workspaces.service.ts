@@ -30,6 +30,11 @@ export class WorkspacesService {
     return workspace;
   }
 
+  async updateName(workspaceId: string, userId: string, name: string) {
+    await this.assertRole(workspaceId, userId, [WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN]);
+    return this.prisma.workspace.update({ where: { id: workspaceId }, data: { name } });
+  }
+
   async create(userId: string, dto: CreateWorkspaceDto) {
     return this.prisma.$transaction(async (tx) => {
       const workspace = await tx.workspace.create({

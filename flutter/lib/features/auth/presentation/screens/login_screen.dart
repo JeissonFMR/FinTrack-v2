@@ -62,9 +62,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Inicia sesión para continuar',
-                  style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 15, color: context.colors.textSecondary),
                 ),
                 const SizedBox(height: 48),
                 TextFormField(
@@ -83,7 +83,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppColors.textHint,
+                        color: context.colors.textHint,
                         size: 20,
                       ),
                       onPressed: () => setState(() => _obscure = !_obscure),
@@ -107,8 +107,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('¿No tienes cuenta? ',
-                        style: TextStyle(color: AppColors.textSecondary)),
+                    Text('¿No tienes cuenta? ',
+                        style: TextStyle(color: context.colors.textSecondary)),
                     GestureDetector(
                       onTap: () => context.go('/register'),
                       child: const Text(

@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/storage/token_storage.dart';
 
-final dashboardSummaryProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+final dashboardSummaryProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final api = ref.read(apiClientProvider);
   final storage = ref.read(tokenStorageProvider);
   final workspaceId = await storage.getWorkspaceId();
@@ -23,7 +23,7 @@ final dashboardSummaryProvider = FutureProvider<Map<String, dynamic>>((ref) asyn
   };
 });
 
-final recentTransactionsProvider = FutureProvider<List>((ref) async {
+final recentTransactionsProvider = FutureProvider.autoDispose<List>((ref) async {
   final api = ref.read(apiClientProvider);
   final storage = ref.read(tokenStorageProvider);
   final workspaceId = await storage.getWorkspaceId();

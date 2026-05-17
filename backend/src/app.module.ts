@@ -35,7 +35,11 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     {
       provide: APP_PIPE,
-      useValue: new ValidationPipe({ whitelist: true, transform: true }),
+      useValue: new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
     },
   ],
 })
