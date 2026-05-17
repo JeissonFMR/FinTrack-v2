@@ -29,6 +29,7 @@ export class AccountsService {
         balance: dto.initialBalance ?? 0,
         color: dto.color ?? '#6366F1',
         icon: dto.icon ?? 'wallet',
+        cardLast4: dto.cardLast4 ?? null,
       },
     });
   }
@@ -46,7 +47,7 @@ export class AccountsService {
   async getSummary(workspaceId: string) {
     const accounts = await this.prisma.account.findMany({
       where: { workspaceId, isActive: true },
-      select: { id: true, name: true, type: true, balance: true, currency: true, color: true, icon: true },
+      select: { id: true, name: true, type: true, balance: true, currency: true, color: true, icon: true, cardLast4: true },
     });
 
     const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0);

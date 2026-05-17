@@ -45,6 +45,9 @@ dependencies:
   # Notification listener (Android)
   notification_listener_service: ^0.3.4
 
+  # Background service for capturing notifications when app is closed
+  flutter_background_service: ^5.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/services/bank_notification_listener.dart';
+import '../../../../core/services/background_capture_service.dart';
+import '../../../../core/services/bank_notification_listener.dart'
+    show ParsedBankTransaction;
 import '../../../transactions/presentation/widgets/detected_tx_sheet.dart';
 
 class MainShell extends ConsumerStatefulWidget {
@@ -15,26 +17,51 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
-  StreamSubscription<ParsedBankTransaction>? _detectedSub;
+  StreamSubscription<Map<String, dynamic>?>? _bgDetectedSub;
+  bool _showingSheet = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final listener = ref.read(bankNotificationListenerProvider);
-      await listener.start();
-      _detectedSub = listener.detected.listen(_onDetected);
+      // Suscribirse al stream que emite el background service en vivo
+      _bgDetectedSub =
+          BackgroundCaptureService.detections.listen(_onDetectedBackground);
+
+      // Procesar detecciones que el background dejó guardadas cuando la
+      // app estaba cerrada
+      await _processPending();
     });
   }
 
-  void _onDetected(ParsedBankTransaction parsed) {
-    if (!mounted) return;
-    DetectedTxSheet.show(context, parsed);
+  Future<void> _processPending() async {
+    final pending = await readPendingDetections();
+    if (pending.isEmpty || !mounted) return;
+    await clearPendingDetections();
+    for (final raw in pending) {
+      if (!mounted) return;
+      await _showSheet(ParsedBankTransaction.fromJson(raw));
+    }
+  }
+
+  void _onDetectedBackground(Map<String, dynamic>? data) {
+    if (!mounted || data == null) return;
+    _showSheet(ParsedBankTransaction.fromJson(data));
+  }
+
+  Future<void> _showSheet(ParsedBankTransaction parsed) async {
+    if (_showingSheet) return; // evita sheets encimados
+    _showingSheet = true;
+    try {
+      await DetectedTxSheet.show(context, parsed);
+    } finally {
+      _showingSheet = false;
+    }
   }
 
   @override
   void dispose() {
-    _detectedSub?.cancel();
+    _bgDetectedSub?.cancel();
     super.dispose();
   }
 

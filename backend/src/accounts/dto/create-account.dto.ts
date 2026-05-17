@@ -1,5 +1,5 @@
 import { AccountType } from '@prisma/client';
-import { IsEnum, IsNumber, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, Length, MaxLength, Min, MinLength } from 'class-validator';
 
 export class CreateAccountDto {
   @IsString()
@@ -26,4 +26,9 @@ export class CreateAccountDto {
   @IsOptional()
   @IsString()
   icon?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(4, 4)
+  cardLast4?: string;
 }

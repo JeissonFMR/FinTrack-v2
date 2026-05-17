@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'core/constants/app_theme.dart';
 import 'core/constants/theme_provider.dart';
 import 'core/router/app_router.dart';
+import 'core/services/background_capture_service.dart';
 import 'core/services/notification_service.dart';
 
 void main() async {
@@ -11,6 +12,7 @@ void main() async {
   await initializeDateFormatting('es', null);
   await NotificationService.instance.init();
   await NotificationService.instance.requestPermissions();
+  await BackgroundCaptureService.initialize();
   runApp(const ProviderScope(child: FinanzasApp()));
 }
 

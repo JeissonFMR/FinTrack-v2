@@ -145,6 +145,7 @@ model Account {
   balance     Decimal     @default(0) @db.Decimal(18, 2)
   color       String      @default("#6366F1")
   icon        String      @default("wallet")
+  cardLast4   String?     @map("card_last4")
   isActive    Boolean     @default(true) @map("is_active")
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")

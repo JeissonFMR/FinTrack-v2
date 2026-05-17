@@ -32,6 +32,7 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _balanceCtrl = TextEditingController(text: '0');
+  final _cardLast4Ctrl = TextEditingController();
 
   String _type = 'BANK';
   String _color = '#18181B';
@@ -47,6 +48,7 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
       _type = a['type'] as String? ?? 'BANK';
       _color = a['color'] as String? ?? '#18181B';
       _balanceCtrl.text = Formatters.decimal(a['balance']).toStringAsFixed(0);
+      _cardLast4Ctrl.text = a['cardLast4'] as String? ?? '';
     }
   }
 
@@ -54,11 +56,13 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
   void dispose() {
     _nameCtrl.dispose();
     _balanceCtrl.dispose();
+    _cardLast4Ctrl.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final cardLast4 = _cardLast4Ctrl.text.trim();
 
     if (_isEditing) {
       await ref.read(accountActionsProvider.notifier).edit(
@@ -67,6 +71,7 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
           'name': _nameCtrl.text.trim(),
           'type': _type,
           'color': _color,
+          if (cardLast4.isNotEmpty) 'cardLast4': cardLast4,
         },
       );
       if (mounted) context.pop();
@@ -82,6 +87,7 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
               0,
           color: _color,
           icon: 'wallet',
+          cardLast4: cardLast4.isEmpty ? null : cardLast4,
         );
 
     if (mounted) {
@@ -207,7 +213,36 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
                   return n == null ? 'Monto inválido' : null;
                 },
               ),
+              const SizedBox(height: 24),
             ],
+
+            // Card last 4 - habilita auto-detección desde notificaciones bancarias
+            const Text(
+              'Últimos 4 dígitos de la tarjeta (opcional)',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Permite que la app reconozca automáticamente compras de esta tarjeta',
+              style: TextStyle(fontSize: 12, color: context.colors.textHint),
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _cardLast4Ctrl,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              decoration: const InputDecoration(
+                hintText: '1234',
+                counterText: '',
+              ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return null;
+                if (v.length != 4 || int.tryParse(v) == null) {
+                  return 'Deben ser 4 dígitos';
+                }
+                return null;
+              },
+            ),
             const SizedBox(height: 40),
 
             ElevatedButton(

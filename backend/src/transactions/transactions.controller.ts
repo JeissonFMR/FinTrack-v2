@@ -16,7 +16,9 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { FilterTransactionDto } from './dto/filter-transaction.dto';
 import { ParseNotificationDto } from './dto/parse-notification.dto';
 import { TransactionsService } from './transactions.service';
-import { LlmService } from '../ai/llm.service';
+import { AccountHint, CategoryHint, LlmService } from '../ai/llm.service';
+import { CategoriesService } from '../categories/categories.service';
+import { AccountsService } from '../accounts/accounts.service';
 
 @UseGuards(JwtAuthGuard, WorkspaceMemberGuard)
 @Controller('workspaces/:workspaceId/transactions')
@@ -24,11 +26,30 @@ export class TransactionsController {
   constructor(
     private readonly transactionsService: TransactionsService,
     private readonly llmService: LlmService,
+    private readonly categoriesService: CategoriesService,
+    private readonly accountsService: AccountsService,
   ) {}
 
   @Post('parse-notification')
-  parseNotification(@Body() dto: ParseNotificationDto) {
-    return this.llmService.parseNotification(dto);
+  async parseNotification(
+    @Param('workspaceId') workspaceId: string,
+    @Body() dto: ParseNotificationDto,
+  ) {
+    const [cats, accs] = await Promise.all([
+      this.categoriesService.findAll(workspaceId),
+      this.accountsService.findAll(workspaceId),
+    ]);
+    const catHints: CategoryHint[] = (cats as Array<{
+      id: string;
+      name: string;
+      type: 'INCOME' | 'EXPENSE' | 'BOTH';
+    }>).map((c) => ({ id: c.id, name: c.name, type: c.type }));
+    const accHints: AccountHint[] = (accs as Array<{
+      id: string;
+      name: string;
+      cardLast4: string | null;
+    }>).map((a) => ({ id: a.id, name: a.name, cardLast4: a.cardLast4 }));
+    return this.llmService.parseNotification(dto, catHints, accHints);
   }
 
   @Get()

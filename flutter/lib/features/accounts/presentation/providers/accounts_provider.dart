@@ -22,6 +22,7 @@ class CreateAccountNotifier extends AsyncNotifier<void> {
     required double initialBalance,
     required String color,
     required String icon,
+    String? cardLast4,
   }) async {
     final api = ref.read(apiClientProvider);
     final storage = ref.read(tokenStorageProvider);
@@ -35,6 +36,7 @@ class CreateAccountNotifier extends AsyncNotifier<void> {
         'initialBalance': initialBalance,
         'color': color,
         'icon': icon,
+        'cardLast4': ?cardLast4,
       });
       ref.invalidate(accountsListProvider);
       ref.invalidate(accountsSummaryProvider);

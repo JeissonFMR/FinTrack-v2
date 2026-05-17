@@ -41,6 +41,8 @@ class _DetectedTxSheetState extends ConsumerState<DetectedTxSheet> {
   void initState() {
     super.initState();
     _descCtrl = TextEditingController(text: widget.parsed.merchant ?? '');
+    _categoryId = widget.parsed.categoryId; // pre-seleccionada por la IA
+    _accountId = widget.parsed.accountId; // pre-seleccionada por la IA
   }
 
   @override
@@ -150,6 +152,23 @@ class _DetectedTxSheetState extends ConsumerState<DetectedTxSheet> {
           ),
           const SizedBox(height: 12),
 
+          if (widget.parsed.accountId != null) ...[
+            Row(
+              children: [
+                const Icon(Icons.auto_awesome, size: 13, color: AppColors.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'Cuenta sugerida por IA',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+          ],
           accountsAsync.when(
             data: (list) => DropdownButtonFormField<String>(
               initialValue: _accountId,
@@ -169,6 +188,23 @@ class _DetectedTxSheetState extends ConsumerState<DetectedTxSheet> {
           ),
           const SizedBox(height: 12),
 
+          if (widget.parsed.categoryId != null) ...[
+            Row(
+              children: [
+                const Icon(Icons.auto_awesome, size: 13, color: AppColors.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'Categoría sugerida por IA',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+          ],
           categoriesAsync.when(
             data: (list) {
               final filtered = list.where((c) {

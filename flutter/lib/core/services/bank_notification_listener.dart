@@ -172,6 +172,8 @@ class ParsedBankTransaction {
   final String? date;
   final String? cardLast4;
   final String? description;
+  final String? categoryId;
+  final String? accountId;
   final double confidence;
 
   const ParsedBankTransaction({
@@ -183,6 +185,8 @@ class ParsedBankTransaction {
     this.date,
     this.cardLast4,
     this.description,
+    this.categoryId,
+    this.accountId,
     this.confidence = 0,
   });
 
@@ -201,6 +205,8 @@ class ParsedBankTransaction {
       date: json['date'] as String?,
       cardLast4: json['cardLast4'] as String?,
       description: json['description'] as String?,
+      categoryId: json['categoryId'] as String?,
+      accountId: json['accountId'] as String?,
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
     );
   }
@@ -214,6 +220,8 @@ class ParsedBankTransaction {
         'date': date,
         'cardLast4': cardLast4,
         'description': description,
+        'categoryId': categoryId,
+        'accountId': accountId,
         'confidence': confidence,
       };
 }
