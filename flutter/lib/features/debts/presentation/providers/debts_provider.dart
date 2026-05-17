@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/api_client.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/storage/token_storage.dart';
 
 final debtsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
@@ -29,7 +30,7 @@ class DebtActionsNotifier extends AsyncNotifier<void> {
 
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await api.post('/workspaces/$workspaceId/debts', data: {
+      final res = await api.post('/workspaces/$workspaceId/debts', data: {
         'name': name,
         'type': type,
         'totalAmount': totalAmount,
@@ -38,6 +39,19 @@ class DebtActionsNotifier extends AsyncNotifier<void> {
         'notes': notes,
       });
       ref.invalidate(debtsProvider);
+
+      if (dueDate != null) {
+        final created = Map<String, dynamic>.from(res.data as Map);
+        final id = created['id'] as String?;
+        if (id != null) {
+          await NotificationService.instance.scheduleDebtReminder(
+            debtId: id,
+            debtName: name,
+            dueDate: DateTime.parse(dueDate),
+            remainingAmount: totalAmount,
+          );
+        }
+      }
     });
   }
 
@@ -48,9 +62,14 @@ class DebtActionsNotifier extends AsyncNotifier<void> {
 
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await api.post('/workspaces/$workspaceId/debts/$debtId/payment',
+      final res = await api.post('/workspaces/$workspaceId/debts/$debtId/payment',
           data: {'amount': amount});
       ref.invalidate(debtsProvider);
+
+      final updated = Map<String, dynamic>.from(res.data as Map);
+      if (updated['isPaid'] == true) {
+        await NotificationService.instance.cancelDebtReminder(debtId);
+      }
     });
   }
 }

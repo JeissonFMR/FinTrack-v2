@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/budget_alert_manager.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../../core/utils/formatters.dart';
 import '../providers/transactions_provider.dart';
@@ -87,6 +88,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       ref.read(transactionsPaginationProvider.notifier).refresh();
       ref.invalidate(dashboardSummaryProvider);
       ref.invalidate(recentTransactionsProvider);
+      ref.read(budgetAlertManagerProvider).checkBudgets();
 
       if (mounted) context.pop();
     } catch (e) {

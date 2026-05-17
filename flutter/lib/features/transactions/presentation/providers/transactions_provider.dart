@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/api_client.dart';
+import '../../../../core/services/budget_alert_manager.dart';
 import '../../../../core/storage/token_storage.dart';
 
 class TransactionFilter {
@@ -193,6 +194,7 @@ class TransactionActionsNotifier extends AsyncNotifier<void> {
     state = await AsyncValue.guard(() async {
       await api.delete('/workspaces/$workspaceId/transactions/$transactionId');
       ref.read(transactionsPaginationProvider.notifier).refresh();
+      ref.read(budgetAlertManagerProvider).checkBudgets();
     });
   }
 
@@ -204,6 +206,7 @@ class TransactionActionsNotifier extends AsyncNotifier<void> {
     state = await AsyncValue.guard(() async {
       await api.patch('/workspaces/$workspaceId/transactions/$transactionId', data: data);
       ref.read(transactionsPaginationProvider.notifier).refresh();
+      ref.read(budgetAlertManagerProvider).checkBudgets();
     });
   }
 }

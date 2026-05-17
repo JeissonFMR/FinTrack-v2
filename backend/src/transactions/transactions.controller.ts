@@ -14,12 +14,22 @@ import { WorkspaceMemberGuard } from '../common/guards/workspace-member.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { FilterTransactionDto } from './dto/filter-transaction.dto';
+import { ParseNotificationDto } from './dto/parse-notification.dto';
 import { TransactionsService } from './transactions.service';
+import { LlmService } from '../ai/llm.service';
 
 @UseGuards(JwtAuthGuard, WorkspaceMemberGuard)
 @Controller('workspaces/:workspaceId/transactions')
 export class TransactionsController {
-  constructor(private readonly transactionsService: TransactionsService) {}
+  constructor(
+    private readonly transactionsService: TransactionsService,
+    private readonly llmService: LlmService,
+  ) {}
+
+  @Post('parse-notification')
+  parseNotification(@Body() dto: ParseNotificationDto) {
+    return this.llmService.parseNotification(dto);
+  }
 
   @Get()
   findAll(

@@ -1,10 +1,42 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/bank_notification_listener.dart';
+import '../../../transactions/presentation/widgets/detected_tx_sheet.dart';
 
-class MainShell extends StatelessWidget {
+class MainShell extends ConsumerStatefulWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
+
+  @override
+  ConsumerState<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends ConsumerState<MainShell> {
+  StreamSubscription<ParsedBankTransaction>? _detectedSub;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final listener = ref.read(bankNotificationListenerProvider);
+      await listener.start();
+      _detectedSub = listener.detected.listen(_onDetected);
+    });
+  }
+
+  void _onDetected(ParsedBankTransaction parsed) {
+    if (!mounted) return;
+    DetectedTxSheet.show(context, parsed);
+  }
+
+  @override
+  void dispose() {
+    _detectedSub?.cancel();
+    super.dispose();
+  }
 
   static const _tabs = [
     ('/dashboard',    Icons.home_outlined,                    Icons.home_rounded,                    'Inicio'),
@@ -26,7 +58,7 @@ class MainShell extends StatelessWidget {
     final currentIndex = _indexFor(context);
 
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: context.colors.border)),

@@ -4,10 +4,13 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'core/constants/app_theme.dart';
 import 'core/constants/theme_provider.dart';
 import 'core/router/app_router.dart';
+import 'core/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es', null);
+  await NotificationService.instance.init();
+  await NotificationService.instance.requestPermissions();
   runApp(const ProviderScope(child: FinanzasApp()));
 }
 
