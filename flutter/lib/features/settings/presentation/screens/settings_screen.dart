@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/theme_provider.dart';
+import '../../../../core/services/auto_register_pref.dart';
 import '../../../../core/services/bank_notification_listener.dart';
 import '../../../../core/services/notifications_pref.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -40,6 +41,7 @@ class _SettingsBody extends ConsumerWidget {
     final initials = email != null && email.isNotEmpty ? email[0].toUpperCase() : '?';
     final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
     final notificationsOn = ref.watch(notificationsEnabledProvider);
+    final autoRegisterOn = ref.watch(autoRegisterEnabledProvider);
 
     return ListView(
       children: [
@@ -171,6 +173,23 @@ class _SettingsBody extends ConsumerWidget {
           ),
         ),
         ListTile(
+          leading: Icon(Icons.bolt_outlined,
+              color: context.colors.textSecondary, size: 22),
+          title: const Text('Registrar automáticamente',
+              style: TextStyle(fontSize: 14)),
+          subtitle: Text(
+            'Si la IA detecta todo (cuenta, categoría y monto), se registra solo',
+            style: TextStyle(color: context.colors.textHint, fontSize: 12),
+          ),
+          trailing: Switch(
+            value: autoRegisterOn,
+            activeThumbColor: Colors.white,
+            activeTrackColor: AppColors.primary,
+            onChanged: (_) =>
+                ref.read(autoRegisterEnabledProvider.notifier).toggle(),
+          ),
+        ),
+        ListTile(
           leading: Icon(Icons.auto_awesome_outlined,
               color: context.colors.textSecondary, size: 22),
           title: const Text('Detección automática', style: TextStyle(fontSize: 14)),
@@ -189,16 +208,13 @@ class _SettingsBody extends ConsumerWidget {
                   const SnackBar(content: Text('Ya tienes el permiso activo')),
                 );
               }
-              await listener.start();
               return;
             }
             final granted = await listener.requestPermission();
-            if (granted) await listener.start();
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(granted
-                    ? 'Permiso otorgado'
-                    : 'Permiso no otorgado')),
+                SnackBar(content: Text(
+                    granted ? 'Permiso otorgado' : 'Permiso no otorgado')),
               );
             }
           },

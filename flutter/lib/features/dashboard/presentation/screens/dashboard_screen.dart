@@ -16,6 +16,7 @@ class DashboardScreen extends ConsumerWidget {
     final recent = ref.watch(recentTransactionsProvider);
     final goalsAsync = ref.watch(goalsProvider);
     final debtsAsync = ref.watch(debtsProvider);
+    final forecastAsync = ref.watch(forecastProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -25,6 +26,7 @@ class DashboardScreen extends ConsumerWidget {
             ref.invalidate(recentTransactionsProvider);
             ref.invalidate(goalsProvider);
             ref.invalidate(debtsProvider);
+            ref.invalidate(forecastProvider);
           },
           color: AppColors.primary,
           child: CustomScrollView(
@@ -41,6 +43,16 @@ class DashboardScreen extends ConsumerWidget {
                         data: (data) => _SummaryCard(data: data),
                         loading: () => const _SummaryCardSkeleton(),
                         error: (err, st) => const _ErrorCard(),
+                      ),
+                      forecastAsync.when(
+                        data: (data) => data.isEmpty
+                            ? const SizedBox.shrink()
+                            : Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: _ForecastCard(data: data),
+                              ),
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -341,7 +353,10 @@ class _TransactionTile extends StatelessWidget {
     final category = tx['category'];
     final date = DateTime.parse(tx['date']);
 
-    return Padding(
+    return InkWell(
+      onTap: () => context.push('/transactions/edit',
+          extra: Map<String, dynamic>.from(tx as Map)),
+      child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
@@ -414,6 +429,7 @@ class _TransactionTile extends StatelessWidget {
           const Divider(height: 0),
         ],
       ),
+    ),
     );
   }
 }
@@ -445,6 +461,114 @@ class _EmptyTransactions extends StatelessWidget {
           'Sin movimientos este mes',
           style: TextStyle(color: context.colors.textSecondary),
         ),
+      ),
+    );
+  }
+}
+
+class _ForecastCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+  const _ForecastCard({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final projected = (data['projectedTotal'] as num?)?.toDouble() ?? 0;
+    final spent = (data['spentSoFar'] as num?)?.toDouble() ?? 0;
+    final lastMonth = (data['lastMonthTotal'] as num?)?.toDouble() ?? 0;
+    final dayOfMonth = (data['dayOfMonth'] as num?)?.toInt() ?? 0;
+    final daysInMonth = (data['daysInMonth'] as num?)?.toInt() ?? 30;
+    final delta = data['deltaVsLast'];
+    final deltaNum = delta is num ? delta.toDouble() : null;
+
+    // Si aún no hay datos del mes, no mostramos nada útil
+    if (spent == 0 && dayOfMonth < 2) return const SizedBox.shrink();
+
+    final isOverLast = deltaNum != null && deltaNum > 0;
+    final accentColor = isOverLast ? AppColors.expense : AppColors.income;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.insights_rounded,
+                  size: 16, color: context.colors.textSecondary),
+              const SizedBox(width: 6),
+              Text(
+                'Proyección fin de mes',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: context.colors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Día $dayOfMonth de $daysInMonth',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: context.colors.textHint,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            Formatters.currency(projected, symbol: '\$'),
+            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Llevas ${Formatters.currency(spent, symbol: '\$')} gastados',
+            style: TextStyle(fontSize: 13, color: context.colors.textSecondary),
+          ),
+          if (deltaNum != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isOverLast
+                        ? Icons.trending_up_rounded
+                        : Icons.trending_down_rounded,
+                    size: 14,
+                    color: accentColor,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    isOverLast
+                        ? '${Formatters.currency(deltaNum.abs(), symbol: '\$')} más que el mes pasado'
+                        : '${Formatters.currency(deltaNum.abs(), symbol: '\$')} menos que el mes pasado',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: accentColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Mes pasado: ${Formatters.currency(lastMonth, symbol: '\$')}',
+              style: TextStyle(fontSize: 11, color: context.colors.textHint),
+            ),
+          ],
+        ],
       ),
     );
   }

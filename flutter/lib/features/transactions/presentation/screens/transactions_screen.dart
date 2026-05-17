@@ -582,7 +582,10 @@ class _TxTile extends StatelessWidget {
       },
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-        onLongPress: () => context.push('/transactions/edit', extra: Map<String, dynamic>.from(tx as Map)),
+        onTap: () => context.push('/transactions/edit',
+            extra: Map<String, dynamic>.from(tx as Map)),
+        onLongPress: () => context.push('/transactions/edit',
+            extra: Map<String, dynamic>.from(tx as Map)),
         leading: Container(
           width: 42,
           height: 42,

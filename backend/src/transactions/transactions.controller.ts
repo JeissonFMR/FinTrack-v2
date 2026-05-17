@@ -69,6 +69,11 @@ export class TransactionsController {
     return this.transactionsService.getSummary(workspaceId, from, to);
   }
 
+  @Get('forecast')
+  getForecast(@Param('workspaceId') workspaceId: string) {
+    return this.transactionsService.getForecast(workspaceId);
+  }
+
   @Get(':id')
   findOne(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
     return this.transactionsService.findOne(workspaceId, id);

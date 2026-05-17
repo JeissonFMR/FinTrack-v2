@@ -17,19 +17,31 @@ const _processedHashesKey = 'bank_notif_processed';
 const _notificationsEnabledKey = 'notifications_enabled';
 
 const _bankPackages = <String>{
+  // Bancos tradicionales
   'com.davivienda.davimovil',
-  'com.todo1.mobile',
-  'com.bancolombia.alkosto',
+  'co.com.bancolombia.appsiu',
+  'com.bancolombia.personas',
+  'com.bancodebogota.bdb',
+  'com.bbva.bbvacontigo',
+  'co.com.bancocajasocial.miBCS',
+  'com.bancopopular.appersonas',
+  'com.bancofalabella.bancofalabella',
+  'com.scotiabankcolpatria.mibanco',
+  'com.itau.app',
+  'com.avvillas.movilbanking',
+  'com.bancognbsudameris.appgnb',
+  // Wallets digitales / fintechs
   'com.nequi.MobileApp',
   'com.nequi.mobile',
   'com.daviplata',
-  'co.com.bancolombia.appperonal',
-  'com.bbva.netcash',
-  'com.bbva.bbvacontigo',
-  'com.scotiabankcolpatria.mibanco',
-  'com.tpaga.movil',
+  'co.com.davivienda.daviplata',
+  'com.rappi.pay',
   'co.com.movii.app',
-  'com.android.shell', // DEV ONLY
+  'com.tpaga.movil',
+  'com.lulobank.android',
+  'com.coink',
+  // DEV: descomentar para probar con `adb shell cmd notification post`
+  // 'com.android.shell',
 };
 
 const _baseUrl = 'http://10.0.2.2:3000/api/v1';
@@ -115,42 +127,23 @@ Future<void> clearPendingDetections() async {
 void _onStart(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
 
-  // ignore: avoid_print
-  print('[BgCapture] 🚀 onStart ejecutado en isolate de background');
-
   if (service is AndroidServiceInstance) {
     service.setAsForegroundService();
     service.setForegroundNotificationInfo(
       title: 'FinanzasJM',
       content: 'Detectando transacciones automáticamente',
     );
-    // ignore: avoid_print
-    print('[BgCapture] Foreground service configurado');
   }
 
   service.on('stopService').listen((_) {
-    // ignore: avoid_print
-    print('[BgCapture] Stop service recibido');
     service.stopSelf();
   });
 
-  // Suscripción persistente al stream de notificaciones del sistema
-  final sub = NotificationListenerService.notificationsStream.listen(
-    (event) {
-      // ignore: avoid_print
-      print(
-          '[BgCapture] 🔔 Evento recibido pkg=${event.packageName} title="${event.title}"');
-      _handleNotification(event, service);
-    },
-    onError: (Object e) {
-      // ignore: avoid_print
-      print('[BgCapture] ❌ Error en stream: $e');
-    },
+  NotificationListenerService.notificationsStream.listen(
+    (event) => _handleNotification(event, service),
+    onError: (Object _) {},
     cancelOnError: false,
   );
-
-  // ignore: avoid_print
-  print('[BgCapture] ✅ Subscripción a notificaciones registrada: $sub');
 }
 
 Future<void> _handleNotification(
@@ -161,23 +154,9 @@ Future<void> _handleNotification(
   final title = event.title ?? '';
   final content = event.content ?? '';
 
-  if (pkg == 'com.example.finanzasjm') {
-    // ignore: avoid_print
-    print('[BgCapture] auto-eco ignorado');
-    return;
-  }
-  if (!_bankPackages.contains(pkg)) {
-    // ignore: avoid_print
-    print('[BgCapture] pkg=$pkg no es banco — ignorado');
-    return;
-  }
-  if (content.isEmpty) {
-    // ignore: avoid_print
-    print('[BgCapture] body vacío — ignorado');
-    return;
-  }
-  // ignore: avoid_print
-  print('[BgCapture] ✓ Pasó filtro de banco, procesando: $content');
+  if (pkg == 'com.example.finanzasjm') return;
+  if (!_bankPackages.contains(pkg)) return;
+  if (content.isEmpty) return;
 
   // Verificar flag de habilitado
   final prefs = await SharedPreferences.getInstance();
@@ -197,14 +176,7 @@ Future<void> _handleNotification(
     const storage = FlutterSecureStorage();
     final token = await storage.read(key: 'access_token');
     final workspaceId = await storage.read(key: 'workspace_id');
-    // ignore: avoid_print
-    print(
-        '[BgCapture] token=${token == null ? 'null' : 'OK(${token.length})'} workspace=$workspaceId');
-    if (token == null || workspaceId == null) {
-      // ignore: avoid_print
-      print('[BgCapture] ⚠️ Faltan credenciales — abortando');
-      return;
-    }
+    if (token == null || workspaceId == null) return;
 
     final dio = Dio(BaseOptions(
       baseUrl: _baseUrl,
@@ -213,8 +185,6 @@ Future<void> _handleNotification(
       receiveTimeout: const Duration(seconds: 30),
     ));
 
-    // ignore: avoid_print
-    print('[BgCapture] → Enviando al backend...');
     final res = await dio.post(
       '/workspaces/$workspaceId/transactions/parse-notification',
       data: {
@@ -226,34 +196,65 @@ Future<void> _handleNotification(
     );
 
     final data = Map<String, dynamic>.from(res.data as Map);
-    // ignore: avoid_print
-    print('[BgCapture] ← Backend respondió: $data');
-    if (data['isTransaction'] != true) {
-      // ignore: avoid_print
-      print('[BgCapture] isTransaction=false, descartando');
-      return;
-    }
+    if (data['isTransaction'] != true) return;
     final amount = data['amount'];
-    if (amount == null || (amount as num) <= 0) {
-      // ignore: avoid_print
-      print('[BgCapture] amount inválido: $amount');
-      return;
-    }
+    if (amount == null || (amount as num) <= 0) return;
 
-    // Guardar como pendiente para que la UI lo muestre cuando se abra
-    final pending = prefs.getStringList(_pendingDetectionsKey) ?? [];
-    pending.add(jsonEncode(data));
-    await prefs.setStringList(_pendingDetectionsKey, pending);
+    // Decidir auto-registro vs sheet de confirmación
+    final autoEnabled = prefs.getBool('auto_register_enabled') ?? true;
+    final confidence = (data['confidence'] as num?)?.toDouble() ?? 0;
+    final hasAccount = data['accountId'] != null;
+    final hasCategory = data['categoryId'] != null;
+    final hasType = data['type'] != null;
+    final canAutoRegister =
+        autoEnabled && confidence >= 0.85 && hasAccount && hasCategory && hasType;
 
-    // Emitir evento al main isolate si está vivo
-    service.invoke('newDetection', data);
-
-    // Mostrar notificación local "toca para confirmar"
-    final plugin = FlutterLocalNotificationsPlugin();
     final merchant = data['merchant'] as String? ?? 'sin comercio';
     final bank = data['bank'] as String? ?? '';
     final amountStr = _formatAmount(amount.toDouble());
     final bankPrefix = bank.isNotEmpty ? '$bank · ' : '';
+
+    if (canAutoRegister) {
+      try {
+        await dio.post('/workspaces/$workspaceId/transactions', data: {
+          'accountId': data['accountId'],
+          'categoryId': data['categoryId'],
+          'type': data['type'],
+          'amount': amount,
+          'description': merchant,
+          'date': (data['date'] as String?) ??
+              DateTime.now().toIso8601String().split('T').first,
+        });
+
+        final plugin = FlutterLocalNotificationsPlugin();
+        await plugin.show(
+          DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          '✅ Transacción registrada',
+          '$bankPrefix\$$amountStr en $merchant — toca para editar',
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              _detectedChannelId,
+              'Transacciones detectadas',
+              channelDescription: 'Detectadas desde notificaciones bancarias',
+              importance: Importance.high,
+              priority: Priority.high,
+            ),
+          ),
+        );
+        return;
+      } catch (_) {
+        // Fallback al flujo de confirmación manual abajo
+      }
+    }
+
+    // Flujo normal: guardar como pendiente y notificar para confirmación
+    final pending = prefs.getStringList(_pendingDetectionsKey) ?? [];
+    pending.add(jsonEncode(data));
+    await prefs.setStringList(_pendingDetectionsKey, pending);
+
+    service.invoke('newDetection', data);
+
+    final plugin = FlutterLocalNotificationsPlugin();
     await plugin.show(
       DateTime.now().millisecondsSinceEpoch ~/ 1000,
       'Nueva transacción detectada',
@@ -268,9 +269,8 @@ Future<void> _handleNotification(
         ),
       ),
     );
-  } catch (e, st) {
-    // ignore: avoid_print
-    print('[BgCapture] ❌ Error procesando: $e\n$st');
+  } catch (_) {
+    // Silenciamos errores de red/token — el listener no debe romper.
   }
 }
 

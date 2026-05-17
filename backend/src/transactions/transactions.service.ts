@@ -226,4 +226,76 @@ export class TransactionsService {
       })),
     };
   }
+
+  /**
+   * Proyección de fin de mes basada en el promedio diario de gasto del
+   * mes en curso, comparado con el total del mes anterior.
+   * Sin IA — pura aritmética. Cero costo, sin riesgos de privacidad.
+   */
+  async getForecast(workspaceId: string) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59);
+    const prevMonthStart = new Date(year, month - 1, 1);
+    const prevMonthEnd = new Date(year, month, 0, 23, 59, 59);
+
+    const daysInMonth = monthEnd.getDate();
+    const dayOfMonth = now.getDate();
+
+    const [currExpenseAgg, prevExpenseAgg, currIncomeAgg] = await Promise.all([
+      this.prisma.transaction.aggregate({
+        where: {
+          workspaceId,
+          type: TransactionType.EXPENSE,
+          date: { gte: monthStart, lte: monthEnd },
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.transaction.aggregate({
+        where: {
+          workspaceId,
+          type: TransactionType.EXPENSE,
+          date: { gte: prevMonthStart, lte: prevMonthEnd },
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.transaction.aggregate({
+        where: {
+          workspaceId,
+          type: TransactionType.INCOME,
+          date: { gte: monthStart, lte: monthEnd },
+        },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const spentSoFar = Number(currExpenseAgg._sum.amount ?? 0);
+    const lastMonthTotal = Number(prevExpenseAgg._sum.amount ?? 0);
+    const currentIncome = Number(currIncomeAgg._sum.amount ?? 0);
+
+    // Promedio diario hasta hoy (incluyendo el día actual)
+    const dailyAverage = dayOfMonth > 0 ? spentSoFar / dayOfMonth : 0;
+    const projectedTotal = dailyAverage * daysInMonth;
+
+    // Delta vs mes pasado: positivo = vas más que el mes anterior
+    const deltaVsLast =
+      lastMonthTotal > 0 ? projectedTotal - lastMonthTotal : null;
+
+    return {
+      year,
+      month: month + 1, // human-friendly (1-12)
+      dayOfMonth,
+      daysInMonth,
+      spentSoFar,
+      currentIncome,
+      dailyAverage,
+      projectedTotal,
+      lastMonthTotal,
+      deltaVsLast,
+      projectedNetFlow: currentIncome - projectedTotal,
+    };
+  }
 }

@@ -79,7 +79,7 @@ REGLAS:
 - type=INCOME: depósitos, transferencias recibidas, abonos.
 - type=TRANSFER: movimientos entre cuentas propias del mismo banco.
 - amount: extrae el monto numérico (sin signo, sin separadores de miles, decimales con punto).
-- merchant: nombre del comercio o de la persona/entidad.
+- merchant: nombre del comercio (para gastos) o del pagador/origen (para ingresos). Ej: "RAPPI", "EXITO" para gastos; "Nómina", "Empresa X", "Juan Pérez" para ingresos. Si no aparece un nombre específico, usa una descripción clara como "Abono nómina", "Transferencia recibida", "Depósito".
 - bank: nombre del banco que emite la notificación (Davivienda, Bancolombia, Nequi, Daviplata, etc.).
 - date: usa formato YYYY-MM-DD. Si no aparece fecha, devuelve null.
 - cardLast4: últimos 4 dígitos de la tarjeta si aparece.

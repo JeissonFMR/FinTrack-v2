@@ -35,3 +35,12 @@ final recentTransactionsProvider = FutureProvider.autoDispose<List>((ref) async 
   );
   return res.data['data'] as List;
 });
+
+final forecastProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  final api = ref.read(apiClientProvider);
+  final storage = ref.read(tokenStorageProvider);
+  final workspaceId = await storage.getWorkspaceId();
+  if (workspaceId == null) return {};
+  final res = await api.get('/workspaces/$workspaceId/transactions/forecast');
+  return Map<String, dynamic>.from(res.data as Map);
+});

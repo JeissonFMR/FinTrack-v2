@@ -99,54 +99,63 @@ class _AccountCard extends StatelessWidget {
     final balance = Formatters.decimal(account['balance']);
     final color = _hexColor(account['color'] as String? ?? '#18181B');
 
+    final cardLast4 = account['cardLast4'] as String?;
     return GestureDetector(
+      onTap: () => context.push('/accounts/edit',
+          extra: Map<String, dynamic>.from(account as Map)),
       onLongPress: () => _showMenu(context),
       child: Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.border),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.colors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.account_balance_wallet_outlined, color: color, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    account['name'] as String,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                  Text(
+                    cardLast4 != null
+                        ? '${_typeLabel(account['type'] as String)} · •••• $cardLast4'
+                        : _typeLabel(account['type'] as String),
+                    style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              Formatters.currency(balance, symbol: '\$'),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                color: balance < 0 ? AppColors.expense : context.colors.textPrimary,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right,
+                size: 18, color: context.colors.textHint),
+          ],
+        ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.account_balance_wallet_outlined, color: color, size: 20),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  account['name'] as String,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                ),
-                Text(
-                  _typeLabel(account['type'] as String),
-                  style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            Formatters.currency(balance, symbol: '\$'),
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              color: balance < 0 ? AppColors.expense : context.colors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    ));
+    );
   }
 
   void _showMenu(BuildContext context) {
