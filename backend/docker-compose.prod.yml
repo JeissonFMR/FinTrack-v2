@@ -18,7 +18,7 @@ services:
     ports:
       - "4000:3000"
     environment:
-      DATABASE_URL: postgresql://finanzas_user:SUPER_PASSWORD@postgres:5432/finanzas_db
+      DATABASE_URL: postgresql://finanzas_user:${DB_PASSWORD}@postgres:5432/finanzas_db
       REDIS_HOST: redis
       REDIS_PORT: 6379
     depends_on:
