@@ -486,90 +486,302 @@ class _ForecastCard extends StatelessWidget {
     final isOverLast = deltaNum != null && deltaNum > 0;
     final accentColor = isOverLast ? AppColors.expense : AppColors.income;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.insights_rounded,
-                  size: 16, color: context.colors.textSecondary),
-              const SizedBox(width: 6),
-              Text(
-                'Proyección fin de mes',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: context.colors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
+    final remaining = projected - spent;
+
+    return GestureDetector(
+      onTap: () => _showInfoSheet(
+          context, projected, spent, lastMonth, dayOfMonth, daysInMonth),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.colors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.insights_rounded,
+                    size: 16, color: context.colors.textSecondary),
+                const SizedBox(width: 6),
+                Text(
+                  'Gasto total estimado del mes',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.colors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const Spacer(),
+                Icon(Icons.info_outline,
+                    size: 16, color: context.colors.textHint),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              Formatters.currency(projected, symbol: '\$'),
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'al final del mes (día $dayOfMonth de $daysInMonth)',
+              style: TextStyle(
+                  fontSize: 12, color: context.colors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            // Desglose visual: ya gastado + estimado restante = total
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ya gastado',
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: context.colors.textHint,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        Formatters.currency(spent, symbol: '\$'),
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ),
+                Text('+',
+                    style: TextStyle(
+                        fontSize: 16, color: context.colors.textHint)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Faltaría gastar',
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: context.colors.textHint,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        Formatters.currency(remaining, symbol: '\$'),
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: context.colors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (deltaNum != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isOverLast
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                      size: 14,
+                      color: accentColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isOverLast
+                          ? '${Formatters.currency(deltaNum.abs(), symbol: '\$')} más que el mes pasado'
+                          : '${Formatters.currency(deltaNum.abs(), symbol: '\$')} menos que el mes pasado',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: accentColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 4),
               Text(
-                'Día $dayOfMonth de $daysInMonth',
+                'Mes pasado: ${Formatters.currency(lastMonth, symbol: '\$')}',
+                style:
+                    TextStyle(fontSize: 11, color: context.colors.textHint),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showInfoSheet(
+    BuildContext context,
+    double projected,
+    double spent,
+    double lastMonth,
+    int dayOfMonth,
+    int daysInMonth,
+  ) {
+    final dailyAvg = dayOfMonth > 0 ? spent / dayOfMonth : 0;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.insights_rounded,
+                      size: 22, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  const Text(
+                    '¿Qué es la proyección?',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 18),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Es una estimación del TOTAL que vas a haber gastado al terminar este mes, asumiendo que sigues al mismo ritmo. Incluye lo que ya gastaste + lo que se estima vas a gastar de hoy en adelante.',
                 style: TextStyle(
-                  fontSize: 11,
-                  color: context.colors.textHint,
+                    color: ctx.colors.textSecondary, fontSize: 14, height: 1.5),
+              ),
+              const SizedBox(height: 20),
+              _InfoRow(
+                label: 'Tu ritmo actual',
+                value:
+                    '${Formatters.currency(dailyAvg.toDouble(), symbol: '\$')}/día',
+                description:
+                    '${Formatters.currency(spent, symbol: '\$')} gastados en $dayOfMonth días',
+              ),
+              const SizedBox(height: 16),
+              _InfoRow(
+                label: 'Estimado restante',
+                value:
+                    Formatters.currency((projected - spent).clamp(0, double.infinity), symbol: '\$'),
+                description:
+                    'Lo que se proyecta que gastarás los ${daysInMonth - dayOfMonth} días que quedan',
+              ),
+              const SizedBox(height: 16),
+              _InfoRow(
+                label: 'Total estimado del mes',
+                value: Formatters.currency(projected, symbol: '\$'),
+                description:
+                    'Ya gastado + estimado restante (el número grande del card)',
+              ),
+              if (lastMonth > 0) ...[
+                const SizedBox(height: 16),
+                _InfoRow(
+                  label: 'Comparativa',
+                  value: Formatters.currency(lastMonth, symbol: '\$'),
+                  description:
+                      'Total gastado el mes pasado — para comparar tu ritmo',
+                ),
+              ],
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.lightbulb_outline,
+                        size: 18, color: AppColors.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Si la proyección te parece alta, baja el ritmo en los días que quedan. Si es baja, tienes margen.',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: ctx.colors.textSecondary,
+                            height: 1.4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Entendido'),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            Formatters.currency(projected, symbol: '\$'),
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Llevas ${Formatters.currency(spent, symbol: '\$')} gastados',
-            style: TextStyle(fontSize: 13, color: context.colors.textSecondary),
-          ),
-          if (deltaNum != null) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isOverLast
-                        ? Icons.trending_up_rounded
-                        : Icons.trending_down_rounded,
-                    size: 14,
-                    color: accentColor,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    isOverLast
-                        ? '${Formatters.currency(deltaNum.abs(), symbol: '\$')} más que el mes pasado'
-                        : '${Formatters.currency(deltaNum.abs(), symbol: '\$')} menos que el mes pasado',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: accentColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Mes pasado: ${Formatters.currency(lastMonth, symbol: '\$')}',
-              style: TextStyle(fontSize: 11, color: context.colors.textHint),
-            ),
-          ],
-        ],
+        ),
       ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final String description;
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: context.colors.textSecondary,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text(description,
+                  style: TextStyle(
+                      fontSize: 11, color: context.colors.textHint)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          value,
+          style: const TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w700),
+        ),
+      ],
     );
   }
 }

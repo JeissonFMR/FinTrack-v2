@@ -16,33 +16,52 @@ const _pendingDetectionsKey = 'pending_detections';
 const _processedHashesKey = 'bank_notif_processed';
 const _notificationsEnabledKey = 'notifications_enabled';
 
-const _bankPackages = <String>{
-  // Bancos tradicionales
-  'com.davivienda.davimovil',
-  'co.com.bancolombia.appsiu',
-  'com.bancolombia.personas',
-  'com.bancodebogota.bdb',
-  'com.bbva.bbvacontigo',
-  'co.com.bancocajasocial.miBCS',
-  'com.bancopopular.appersonas',
-  'com.bancofalabella.bancofalabella',
-  'com.scotiabankcolpatria.mibanco',
-  'com.itau.app',
-  'com.avvillas.movilbanking',
-  'com.bancognbsudameris.appgnb',
-  // Wallets digitales / fintechs
-  'com.nequi.MobileApp',
-  'com.nequi.mobile',
-  'com.daviplata',
-  'co.com.davivienda.daviplata',
-  'com.rappi.pay',
-  'co.com.movii.app',
-  'com.tpaga.movil',
-  'com.lulobank.android',
-  'com.coink',
-  // DEV: descomentar para probar con `adb shell cmd notification post`
-  // 'com.android.shell',
+/// Apps que NUNCA mandan notificaciones financieras útiles.
+/// Las filtramos antes de gastar API/LLM/red.
+const _ignoredPackages = <String>{
+  // Mensajería
+  'com.whatsapp',
+  'com.whatsapp.w4b',
+  'org.telegram.messenger',
+  'org.thoughtcrime.securesms', // Signal
+  'com.facebook.orca', // Messenger
+  'com.facebook.mlite',
+  'com.discord',
+  'com.Slack',
+  'com.microsoft.teams',
+  // Redes sociales
+  'com.instagram.android',
+  'com.facebook.katana',
+  'com.twitter.android',
+  'com.x.android',
+  'com.zhiliaoapp.musically', // TikTok
+  'com.snapchat.android',
+  'com.pinterest',
+  'com.linkedin.android',
+  'com.reddit.frontpage',
+  'com.threads.android',
+  // Entretenimiento
+  'com.google.android.youtube',
+  'com.netflix.mediaclient',
+  'com.amazon.avod.thirdpartyclient', // Prime Video
+  'com.disney.disneyplus',
+  // Email — los emails de cobros llegan mejor desde el banco directo
+  'com.google.android.gm',
+  'com.microsoft.office.outlook',
+  // Llamadas/SMS del sistema
+  'com.google.android.dialer',
+  'com.google.android.apps.messaging',
+  // Auto-eco (nuestras propias notificaciones)
+  'com.example.finanzasjm',
 };
+
+/// Patrones que sugieren que una notificación habla de dinero.
+/// Si no aparece NADA de esto en el texto, no se molesta al LLM.
+final _moneyPattern = RegExp(
+  r'(\$\s?\d|cop\s?\d|usd\s?\d|\d{1,3}(?:[.,]\d{3})+|'
+  r'\b(compra|pago|pagaste|transferencia|transferiste|recibiste|abono|deposito|depósito|cobro|cargo|retiro|consumo|movimiento|debito|débito|credito|crédito|nomina|nómina|saldo)\b)',
+  caseSensitive: false,
+);
 
 const _baseUrl = 'http://10.0.2.2:3000/api/v1';
 
@@ -154,9 +173,10 @@ Future<void> _handleNotification(
   final title = event.title ?? '';
   final content = event.content ?? '';
 
-  if (pkg == 'com.example.finanzasjm') return;
-  if (!_bankPackages.contains(pkg)) return;
   if (content.isEmpty) return;
+  if (_ignoredPackages.contains(pkg)) return;
+  // Pre-filtro local: si el texto no menciona dinero, no gastamos API
+  if (!_moneyPattern.hasMatch('$title $content')) return;
 
   // Verificar flag de habilitado
   final prefs = await SharedPreferences.getInstance();

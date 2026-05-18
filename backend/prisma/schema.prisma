@@ -82,6 +82,7 @@ model User {
   refreshTokens        RefreshToken[]
   workspaceMemberships WorkspaceMember[]
   transactions         Transaction[]
+  recurringTxs         RecurringTransaction[] @relation("UserRecurring")
 
   @@map("users")
 }
@@ -154,6 +155,7 @@ model Account {
   transactions        Transaction[] @relation("AccountTransactions")
   transfersTo         Transaction[] @relation("TransferToAccount")
   transfersFrom       Transaction[] @relation("TransferFromAccount")
+  recurringTxs        RecurringTransaction[] @relation("AccountRecurring")
 
   @@map("accounts")
 }
@@ -176,6 +178,7 @@ model Category {
   subcategories Category[] @relation("CategoryHierarchy")
   transactions  Transaction[]
   budgets       Budget[]
+  recurringTxs  RecurringTransaction[]
 
   @@map("categories")
 }
@@ -219,12 +222,26 @@ model Transaction {
 model RecurringTransaction {
   id          String              @id @default(uuid())
   workspaceId String              @map("workspace_id")
+  name        String
+  type        TransactionType
+  amount      Decimal             @db.Decimal(18, 2)
+  accountId   String              @map("account_id")
+  categoryId  String?             @map("category_id")
+  description String?
   frequency   RecurrenceFrequency
+  startDate   DateTime            @map("start_date")
+  endDate     DateTime?           @map("end_date")
   nextDueDate DateTime            @map("next_due_date")
+  lastRunDate DateTime?           @map("last_run_date")
   isActive    Boolean             @default(true) @map("is_active")
+  createdById String              @map("created_by_id")
   createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
 
   workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  account      Account       @relation("AccountRecurring", fields: [accountId], references: [id])
+  category     Category?     @relation(fields: [categoryId], references: [id])
+  createdBy    User          @relation("UserRecurring", fields: [createdById], references: [id])
   transactions Transaction[]
 
   @@map("recurring_transactions")

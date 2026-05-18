@@ -146,6 +146,18 @@ class _SettingsBody extends ConsumerWidget {
           onTap: () => context.push('/categories'),
         ),
         ListTile(
+          leading: Icon(Icons.replay_outlined,
+              color: context.colors.textSecondary, size: 22),
+          title: const Text('Recurrentes', style: TextStyle(fontSize: 14)),
+          subtitle: Text(
+            'Suscripciones, salario, arriendo',
+            style: TextStyle(color: context.colors.textHint, fontSize: 12),
+          ),
+          trailing: Icon(Icons.chevron_right,
+              size: 18, color: context.colors.textHint),
+          onTap: () => context.push('/recurring'),
+        ),
+        ListTile(
           leading: Icon(Icons.dark_mode_outlined,
               color: context.colors.textSecondary, size: 22),
           title: const Text('Modo oscuro', style: TextStyle(fontSize: 14)),
