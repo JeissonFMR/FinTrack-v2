@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: finanzas_user
-      POSTGRES_PASSWORD: SUPER_PASSWORD
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: finanzas_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
