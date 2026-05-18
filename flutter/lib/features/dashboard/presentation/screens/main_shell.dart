@@ -83,8 +83,82 @@ class _MainShellState extends ConsumerState<MainShell> {
   @override
   Widget build(BuildContext context) {
     final currentIndex = _indexFor(context);
+    final tabTitle = _tabs[currentIndex].$4;
 
     return Scaffold(
+      appBar: AppBar(
+        titleSpacing: 20,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              tabTitle,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
+            ),
+            Text(
+              'FinanzasJM',
+              style: TextStyle(
+                fontSize: 11,
+                color: context.colors.textHint,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          // Botón IA destacado
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Material(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(20),
+              child: InkWell(
+                onTap: () => context.push('/assistant'),
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 7),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.auto_awesome,
+                          size: 14, color: Colors.white),
+                      SizedBox(width: 5),
+                      Text(
+                        'IA',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () => context.push('/reports'),
+            icon: Icon(Icons.bar_chart_rounded,
+                color: context.colors.textSecondary),
+            tooltip: 'Reportes',
+          ),
+          IconButton(
+            onPressed: () => context.push('/settings'),
+            icon: Icon(Icons.person_outline_rounded,
+                color: context.colors.textSecondary),
+            tooltip: 'Configuración',
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
       body: widget.child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

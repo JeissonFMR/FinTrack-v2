@@ -48,6 +48,9 @@ dependencies:
   # Background service for capturing notifications when app is closed
   flutter_background_service: ^5.1.0
 
+  # Reconocimiento de voz nativo (Android/iOS) para el asistente
+  speech_to_text: ^7.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

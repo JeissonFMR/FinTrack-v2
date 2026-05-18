@@ -20,7 +20,6 @@ class BudgetsScreen extends ConsumerWidget {
     final budgetsAsync = ref.watch(budgetsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Presupuestos')),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showSheet(context, ref),
         backgroundColor: AppColors.primary,

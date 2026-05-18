@@ -12,7 +12,6 @@ class GoalsScreen extends ConsumerWidget {
     final goalsAsync = ref.watch(goalsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Metas de ahorro')),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddGoalSheet(context, ref),
         backgroundColor: AppColors.primary,

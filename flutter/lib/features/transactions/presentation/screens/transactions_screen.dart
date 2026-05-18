@@ -60,54 +60,96 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final filter = ref.watch(transactionFilterProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: _searchActive
-            ? TextField(
-                controller: _searchCtrl,
-                autofocus: true,
-                onChanged: _onSearchChanged,
-                decoration: InputDecoration(
-                  hintText: 'Buscar movimientos...',
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(color: context.colors.textHint),
-                ),
-                style: const TextStyle(fontSize: 16),
-              )
-            : const Text('Movimientos'),
-        actions: [
-          if (_searchActive)
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: _toggleSearch,
-            )
-          else ...[
-            if (filter.hasFilters)
-              TextButton(
-                onPressed: () => ref
-                    .read(transactionFilterProvider.notifier)
-                    .state = const TransactionFilter(),
-                child: const Text('Limpiar'),
-              ),
-            IconButton(
-              icon: const Icon(Icons.search_rounded),
-              onPressed: _toggleSearch,
-            ),
-            IconButton(
-              icon: Badge(
-                isLabelVisible: filter.hasFilters,
-                backgroundColor: AppColors.primary,
-                child: const Icon(Icons.tune_rounded),
-              ),
-              onPressed: () => _showFilterSheet(context, ref),
-            ),
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () => context.push('/transactions/add'),
-            ),
-          ],
-        ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.push('/transactions/add'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        child: const Icon(Icons.add),
       ),
-      body: paginatedAsync.when(
+      body: Column(
+        children: [
+          // Toolbar inline: búsqueda y filtros
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+            decoration: BoxDecoration(
+              border: Border(
+                  bottom: BorderSide(color: context.colors.border)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _searchActive
+                      ? TextField(
+                          controller: _searchCtrl,
+                          autofocus: true,
+                          onChanged: _onSearchChanged,
+                          decoration: InputDecoration(
+                            hintText: 'Buscar movimientos...',
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                            hintStyle:
+                                TextStyle(color: context.colors.textHint),
+                          ),
+                          style: const TextStyle(fontSize: 15),
+                        )
+                      : InkWell(
+                          onTap: _toggleSearch,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 4),
+                            child: Row(
+                              children: [
+                                Icon(Icons.search_rounded,
+                                    size: 18,
+                                    color: context.colors.textHint),
+                                const SizedBox(width: 8),
+                                Text('Buscar',
+                                    style: TextStyle(
+                                        color: context.colors.textHint,
+                                        fontSize: 14)),
+                              ],
+                            ),
+                          ),
+                        ),
+                ),
+                if (_searchActive)
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: _toggleSearch,
+                    tooltip: 'Cerrar búsqueda',
+                  )
+                else ...[
+                  if (filter.hasFilters)
+                    TextButton(
+                      onPressed: () => ref
+                          .read(transactionFilterProvider.notifier)
+                          .state = const TransactionFilter(),
+                      style: TextButton.styleFrom(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 10)),
+                      child: const Text('Limpiar',
+                          style: TextStyle(fontSize: 13)),
+                    ),
+                  IconButton(
+                    icon: Badge(
+                      isLabelVisible: filter.hasFilters,
+                      backgroundColor: AppColors.primary,
+                      child: const Icon(Icons.tune_rounded, size: 20),
+                    ),
+                    onPressed: () => _showFilterSheet(context, ref),
+                    tooltip: 'Filtros',
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Expanded(
+            child: paginatedAsync.when(
         data: (paginated) {
           final txs = paginated.items;
           final total = paginated.total;
@@ -186,6 +228,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         error: (err, st) => Center(
           child: Text('$err', style: const TextStyle(color: AppColors.expense)),
         ),
+      ),
+          ),
+        ],
       ),
     );
   }

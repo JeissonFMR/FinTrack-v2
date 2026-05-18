@@ -37,8 +37,6 @@ class DashboardScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _Header(ref: ref),
-                      const SizedBox(height: 24),
                       summary.when(
                         data: (data) => _SummaryCard(data: data),
                         loading: () => const _SummaryCardSkeleton(),
@@ -144,48 +142,6 @@ class DashboardScreen extends ConsumerWidget {
         child: const Icon(Icons.add),
       ),
     );
-  }
-}
-
-class _Header extends StatelessWidget {
-  final WidgetRef ref;
-  const _Header({required this.ref});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _greeting(),
-              style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
-            ),
-            const Text(
-              'FinanzasJM',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-        IconButton(
-          onPressed: () => context.push('/reports'),
-          icon: Icon(Icons.bar_chart_rounded, color: context.colors.textSecondary),
-        ),
-        IconButton(
-          onPressed: () => context.push('/settings'),
-          icon: Icon(Icons.person_outline_rounded, color: context.colors.textSecondary),
-        ),
-      ],
-    );
-  }
-
-  String _greeting() {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'Buenos días';
-    if (h < 18) return 'Buenas tardes';
-    return 'Buenas noches';
   }
 }
 

@@ -14,6 +14,7 @@ import { BudgetsModule } from './budgets/budgets.module';
 import { GoalsModule } from './goals/goals.module';
 import { DebtsModule } from './debts/debts.module';
 import { RecurringTransactionsModule } from './recurring-transactions/recurring-transactions.module';
+import { AssistantModule } from './assistant/assistant.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
@@ -32,6 +33,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     GoalsModule,
     DebtsModule,
     RecurringTransactionsModule,
+    AssistantModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

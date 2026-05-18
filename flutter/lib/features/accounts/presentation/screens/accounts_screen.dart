@@ -13,7 +13,6 @@ class AccountsScreen extends ConsumerWidget {
     final summaryAsync = ref.watch(accountsSummaryProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cuentas')),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/accounts/add'),
         backgroundColor: AppColors.primary,

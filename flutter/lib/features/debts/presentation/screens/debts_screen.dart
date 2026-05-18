@@ -12,7 +12,6 @@ class DebtsScreen extends ConsumerWidget {
     final debtsAsync = ref.watch(debtsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Deudas')),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddDebtSheet(context, ref),
         backgroundColor: AppColors.primary,
