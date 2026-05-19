@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/thousands_input_formatter.dart';
 import '../providers/accounts_provider.dart';
 
 const _accountTypes = [
@@ -47,7 +48,13 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
       _nameCtrl.text = a['name'] as String? ?? '';
       _type = a['type'] as String? ?? 'BANK';
       _color = a['color'] as String? ?? '#18181B';
-      _balanceCtrl.text = Formatters.decimal(a['balance']).toStringAsFixed(0);
+      final balance = Formatters.decimal(a['balance']).abs();
+      _balanceCtrl.text = ThousandsInputFormatter()
+          .formatEditUpdate(
+            const TextEditingValue(text: ''),
+            TextEditingValue(text: balance.toStringAsFixed(0)),
+          )
+          .text;
       _cardLast4Ctrl.text = a['cardLast4'] as String? ?? '';
     }
   }
@@ -78,13 +85,17 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
       return;
     }
 
+    // Para tarjetas de crédito, el usuario ingresa la deuda como positivo.
+    // Internamente guardamos como negativo (saldo negativo = debe).
+    final rawBalance = ThousandsInputFormatter.parse(_balanceCtrl.text) ?? 0;
+    final adjustedBalance = _type == 'CREDIT_CARD'
+        ? -rawBalance.abs()
+        : rawBalance;
+
     await ref.read(createAccountProvider.notifier).create(
           name: _nameCtrl.text.trim(),
           type: _type,
-          initialBalance: double.tryParse(
-                _balanceCtrl.text.replaceAll(',', '.'),
-              ) ??
-              0,
+          initialBalance: adjustedBalance,
           color: _color,
           icon: 'wallet',
           cardLast4: cardLast4.isEmpty ? null : cardLast4,
@@ -194,22 +205,32 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
             const SizedBox(height: 24),
 
             if (!_isEditing) ...[
-              const Text(
-                'Saldo inicial',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              Text(
+                _type == 'CREDIT_CARD'
+                    ? 'Deuda actual de la tarjeta'
+                    : 'Saldo inicial',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               ),
+              const SizedBox(height: 6),
+              if (_type == 'CREDIT_CARD')
+                Text(
+                  'Ingresa cuánto debes ahora. La app lo guarda en negativo internamente.',
+                  style: TextStyle(fontSize: 12, color: context.colors.textHint),
+                ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _balanceCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [const ThousandsInputFormatter()],
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                decoration: const InputDecoration(
-                  prefixText: '\$ ',
-                  prefixStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                decoration: InputDecoration(
+                  prefixText: _type == 'CREDIT_CARD' ? '-\$ ' : '\$ ',
+                  prefixStyle: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.w700),
                 ),
                 validator: (v) {
                   if (v == null || v.isEmpty) return null;
-                  final n = double.tryParse(v.replaceAll(',', '.'));
+                  final n = ThousandsInputFormatter.parse(v);
                   return n == null ? 'Monto inválido' : null;
                 },
               ),

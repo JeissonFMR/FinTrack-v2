@@ -1,5 +1,5 @@
 import { AccountType } from '@prisma/client';
-import { IsEnum, IsNumber, IsOptional, IsString, Length, MaxLength, Min, MinLength } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, Length, MaxLength, MinLength } from 'class-validator';
 
 export class CreateAccountDto {
   @IsString()
@@ -14,9 +14,9 @@ export class CreateAccountDto {
   @IsString()
   currency?: string;
 
+  // Acepta negativo para tarjetas de crédito (saldo negativo = deuda)
   @IsOptional()
   @IsNumber()
-  @Min(0)
   initialBalance?: number;
 
   @IsOptional()

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/thousands_input_formatter.dart';
 import '../../../transactions/presentation/providers/transactions_provider.dart';
 import '../providers/budgets_provider.dart';
 
@@ -246,7 +247,13 @@ class _BudgetSheetState extends State<_BudgetSheet> {
     super.initState();
     final e = widget.existing;
     if (e != null) {
-      _amountCtrl.text = Formatters.decimal(e['amount']).toStringAsFixed(0);
+      _amountCtrl.text = ThousandsInputFormatter()
+          .formatEditUpdate(
+            const TextEditingValue(text: ''),
+            TextEditingValue(
+                text: Formatters.decimal(e['amount']).toStringAsFixed(0)),
+          )
+          .text;
       _period = e['period'] as String? ?? 'MONTHLY';
       _categoryId = (e['category'] as Map?)?['id'] as String?;
       _alertAt = (e['alertAt'] as num?)?.toInt() ?? 80;
@@ -318,6 +325,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
           TextField(
             controller: _amountCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [const ThousandsInputFormatter()],
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             decoration: const InputDecoration(
               prefixText: '\$ ',
@@ -405,8 +413,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
 
           ElevatedButton(
             onPressed: () async {
-              final amount = double.tryParse(
-                  _amountCtrl.text.replaceAll(',', '.'));
+              final amount = ThousandsInputFormatter.parse(_amountCtrl.text);
               if (amount == null || amount <= 0 || _categoryId == null) return;
 
               final nav = Navigator.of(context);

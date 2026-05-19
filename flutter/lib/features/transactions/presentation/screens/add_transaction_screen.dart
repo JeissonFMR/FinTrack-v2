@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/budget_alert_manager.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/thousands_input_formatter.dart';
 import '../providers/transactions_provider.dart';
 import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 
@@ -40,7 +41,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       _accountId = tx['accountId'] as String? ?? (tx['account'] as Map?)?['id'] as String?;
       _categoryId = tx['categoryId'] as String? ?? (tx['category'] as Map?)?['id'] as String?;
       _descCtrl.text = tx['description'] as String? ?? '';
-      _amountCtrl.text = Formatters.decimal(tx['amount']).toStringAsFixed(0);
+      final amt = Formatters.decimal(tx['amount']);
+      _amountCtrl.text = ThousandsInputFormatter()
+          .formatEditUpdate(
+            const TextEditingValue(text: ''),
+            TextEditingValue(text: amt.toStringAsFixed(0)),
+          )
+          .text;
       final dateStr = tx['date'] as String?;
       if (dateStr != null) _date = DateTime.parse(dateStr);
     }
@@ -73,7 +80,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         'accountId': _accountId,
         'categoryId': _categoryId,
         'type': _type,
-        'amount': double.parse(_amountCtrl.text.replaceAll(',', '.')),
+        'amount': ThousandsInputFormatter.parse(_amountCtrl.text) ?? 0,
         'description': _descCtrl.text.trim(),
         'date': _date.toIso8601String(),
       };
@@ -127,7 +134,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             // Monto
             TextFormField(
               controller: _amountCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [const ThousandsInputFormatter()],
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
               decoration: const InputDecoration(
                 hintText: '0',
@@ -136,7 +145,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               ),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Ingresa un monto';
-                final n = double.tryParse(v.replaceAll(',', '.'));
+                final n = ThousandsInputFormatter.parse(v);
                 if (n == null || n <= 0) return 'Monto inválido';
                 return null;
               },

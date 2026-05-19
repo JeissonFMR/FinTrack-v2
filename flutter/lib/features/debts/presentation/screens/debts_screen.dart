@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/thousands_input_formatter.dart';
 import '../providers/debts_provider.dart';
 
 class DebtsScreen extends ConsumerWidget {
@@ -94,6 +95,7 @@ class DebtsScreen extends ConsumerWidget {
             TextField(
               controller: ctrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [const ThousandsInputFormatter()],
               autofocus: true,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
               decoration: const InputDecoration(
@@ -105,7 +107,7 @@ class DebtsScreen extends ConsumerWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                final amount = double.tryParse(ctrl.text.replaceAll(',', '.'));
+                final amount = ThousandsInputFormatter.parse(ctrl.text);
                 if (amount == null || amount <= 0) return;
                 final nav = Navigator.of(ctx);
                 await ref
@@ -366,6 +368,7 @@ class _AddDebtSheetState extends State<_AddDebtSheet> {
           TextField(
             controller: _amountCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [const ThousandsInputFormatter()],
             decoration: const InputDecoration(hintText: 'Monto total', prefixText: '\$ '),
           ),
           const SizedBox(height: 12),
@@ -405,7 +408,7 @@ class _AddDebtSheetState extends State<_AddDebtSheet> {
           ElevatedButton(
             onPressed: () async {
               final name = _nameCtrl.text.trim();
-              final amount = double.tryParse(_amountCtrl.text.replaceAll(',', '.'));
+              final amount = ThousandsInputFormatter.parse(_amountCtrl.text);
               if (name.isEmpty || amount == null || amount <= 0) return;
               final nav = Navigator.of(context);
               await widget.ref.read(debtActionsProvider.notifier).create(

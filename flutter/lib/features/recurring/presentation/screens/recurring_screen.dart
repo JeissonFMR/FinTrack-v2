@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/thousands_input_formatter.dart';
 import '../../../transactions/presentation/providers/transactions_provider.dart';
 import '../providers/recurring_provider.dart';
 
@@ -317,7 +318,13 @@ class _RecurringSheetState extends ConsumerState<_RecurringSheet> {
     final e = widget.existing;
     if (e != null) {
       _nameCtrl.text = e['name'] as String? ?? '';
-      _amountCtrl.text = Formatters.decimal(e['amount']).toStringAsFixed(0);
+      _amountCtrl.text = ThousandsInputFormatter()
+          .formatEditUpdate(
+            const TextEditingValue(text: ''),
+            TextEditingValue(
+                text: Formatters.decimal(e['amount']).toStringAsFixed(0)),
+          )
+          .text;
       _descCtrl.text = e['description'] as String? ?? '';
       _type = e['type'] as String? ?? 'EXPENSE';
       _frequency = e['frequency'] as String? ?? 'MONTHLY';
@@ -341,7 +348,7 @@ class _RecurringSheetState extends ConsumerState<_RecurringSheet> {
 
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
-    final amount = double.tryParse(_amountCtrl.text.replaceAll(',', '.'));
+    final amount = ThousandsInputFormatter.parse(_amountCtrl.text);
     if (name.isEmpty || amount == null || amount <= 0 || _accountId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Completa nombre, monto y cuenta')),
@@ -415,6 +422,7 @@ class _RecurringSheetState extends ConsumerState<_RecurringSheet> {
             TextField(
               controller: _amountCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [const ThousandsInputFormatter()],
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
               decoration: const InputDecoration(
                 hintText: 'Monto',

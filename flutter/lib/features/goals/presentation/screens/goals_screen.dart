@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/thousands_input_formatter.dart';
 import '../providers/goals_provider.dart';
 
 class GoalsScreen extends ConsumerWidget {
@@ -102,6 +103,7 @@ class GoalsScreen extends ConsumerWidget {
             TextField(
               controller: ctrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [const ThousandsInputFormatter()],
               autofocus: true,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
               decoration: const InputDecoration(
@@ -113,7 +115,7 @@ class GoalsScreen extends ConsumerWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                final amount = double.tryParse(ctrl.text.replaceAll(',', '.'));
+                final amount = ThousandsInputFormatter.parse(ctrl.text);
                 if (amount == null || amount <= 0) return;
                 await ref.read(goalActionsProvider.notifier)
                     .addProgress(goal['id'], amount);
@@ -293,7 +295,13 @@ class _AddGoalSheetState extends State<_AddGoalSheet> {
     final g = widget.existing;
     if (g != null) {
       _nameCtrl.text = g['name'] as String? ?? '';
-      _targetCtrl.text = Formatters.decimal(g['targetAmount']).toStringAsFixed(0);
+      _targetCtrl.text = ThousandsInputFormatter()
+          .formatEditUpdate(
+            const TextEditingValue(text: ''),
+            TextEditingValue(
+                text: Formatters.decimal(g['targetAmount']).toStringAsFixed(0)),
+          )
+          .text;
       _color = g['color'] as String? ?? '#10B981';
       final dl = g['deadline'] as String?;
       if (dl != null) _deadline = DateTime.parse(dl);
@@ -327,6 +335,7 @@ class _AddGoalSheetState extends State<_AddGoalSheet> {
           TextField(
             controller: _targetCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [const ThousandsInputFormatter()],
             decoration: const InputDecoration(
               hintText: 'Monto objetivo',
               prefixText: '\$ ',
@@ -390,7 +399,7 @@ class _AddGoalSheetState extends State<_AddGoalSheet> {
           ElevatedButton(
             onPressed: () async {
               final name = _nameCtrl.text.trim();
-              final target = double.tryParse(_targetCtrl.text.replaceAll(',', '.'));
+              final target = ThousandsInputFormatter.parse(_targetCtrl.text);
               if (name.isEmpty || target == null || target <= 0) return;
 
               final nav = Navigator.of(context);

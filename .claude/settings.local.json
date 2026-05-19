@@ -31,7 +31,11 @@
       "Bash(curl -s http://localhost:3000/api/v1/auth/register -X POST -H \"Content-Type: application/json\" -d '{\"name\":\"Test\",\"email\":\"goals_test2@test.com\",\"password\":\"Test1234!\"}')",
       "Bash(grep -v \"^Analyzing\\\\|^$\")",
       "Bash(find ~/.pub-cache -path \"*notification_listener_service*/android/src/main/AndroidManifest.xml\" 2>/dev/null | head -3)",
-      "Read(//Users/jeissonmr/.pub-cache/**)"
+      "Read(//Users/jeissonmr/.pub-cache/**)",
+      "Bash(curl -v http://localhost:3000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@test.com\",\"password\":\"test\"}')",
+      "Bash(docker exec *)",
+      "Bash(curl -v http://localhost:3000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@test.com\",\"password\":\"testtest1\"}')",
+      "Bash(PGPASSWORD='A1Wh9zjvcE' psql -h localhost -p 5433 -U jeissonmr -d finanzas_db -c \"SELECT 1;\")"
     ],
     "additionalDirectories": [
       "/Users/jeissonmr/Documents/PROJECTS/finanzasJM/finanzasjm"

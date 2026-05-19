@@ -12,6 +12,6 @@ class ApiConfig {
   /// URL base de la API. Sobrescríbela en build/run con --dart-define.
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://31.220.103.76:4000/api/v1',
+    defaultValue: 'http://10.0.2.2:3000/api/v1',
   );
 }
