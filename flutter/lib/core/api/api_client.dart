@@ -1,10 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/token_storage.dart';
-
-// 10.0.2.2 = localhost del host en emulador Android
-// Cambiar a la IP local de tu Mac para dispositivo físico
-const _baseUrl = 'http://10.0.2.2:3000/api/v1';
+import 'api_config.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final storage = ref.read(tokenStorageProvider);
@@ -17,7 +14,7 @@ class ApiClient {
 
   ApiClient(this._storage) {
     _dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
+      baseUrl: ApiConfig.baseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 15),
       headers: {'Content-Type': 'application/json'},

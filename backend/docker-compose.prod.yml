@@ -5,6 +5,8 @@ services:
       POSTGRES_USER: finanzas_user
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: finanzas_db
+    ports:
+      - "5433:5432" 
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

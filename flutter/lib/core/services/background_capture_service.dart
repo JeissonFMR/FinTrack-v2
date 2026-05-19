@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import '../api/api_config.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:notification_listener_service/notification_event.dart';
@@ -62,8 +63,6 @@ final _moneyPattern = RegExp(
   r'\b(compra|pago|pagaste|transferencia|transferiste|recibiste|abono|deposito|depósito|cobro|cargo|retiro|consumo|movimiento|debito|débito|credito|crédito|nomina|nómina|saldo)\b)',
   caseSensitive: false,
 );
-
-const _baseUrl = 'http://10.0.2.2:3000/api/v1';
 
 class BackgroundCaptureService {
   BackgroundCaptureService._();
@@ -199,7 +198,7 @@ Future<void> _handleNotification(
     if (token == null || workspaceId == null) return;
 
     final dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
+      baseUrl: ApiConfig.baseUrl,
       headers: {'Authorization': 'Bearer $token'},
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 30),
