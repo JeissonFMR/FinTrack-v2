@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:dio/dio.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/budget_alert_manager.dart';
@@ -26,6 +27,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   String _type = 'EXPENSE';
   String? _accountId;
+  String? _transferToAccountId;
   String? _categoryId;
   DateTime _date = DateTime.now();
   bool _loading = false;
@@ -39,6 +41,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     if (tx != null) {
       _type = tx['type'] as String? ?? 'EXPENSE';
       _accountId = tx['accountId'] as String? ?? (tx['account'] as Map?)?['id'] as String?;
+      _transferToAccountId = tx['transferToAccountId'] as String?;
       _categoryId = tx['categoryId'] as String? ?? (tx['category'] as Map?)?['id'] as String?;
       _descCtrl.text = tx['description'] as String? ?? '';
       final amt = Formatters.decimal(tx['amount']);
@@ -68,6 +71,21 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       );
       return;
     }
+    if (_type == 'TRANSFER') {
+      if (_transferToAccountId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Selecciona la cuenta destino')),
+        );
+        return;
+      }
+      if (_transferToAccountId == _accountId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('La cuenta destino debe ser diferente a la origen')),
+        );
+        return;
+      }
+    }
 
     setState(() => _loading = true);
 
@@ -78,11 +96,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
       final body = {
         'accountId': _accountId,
-        'categoryId': _categoryId,
+        'categoryId': _type == 'TRANSFER' ? null : _categoryId,
         'type': _type,
         'amount': ThousandsInputFormatter.parse(_amountCtrl.text) ?? 0,
         'description': _descCtrl.text.trim(),
         'date': _date.toIso8601String(),
+        if (_type == 'TRANSFER')
+          'transferToAccountId': _transferToAccountId,
       };
 
       if (_isEditing) {
@@ -100,8 +120,25 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       if (mounted) context.pop();
     } catch (e) {
       if (mounted) {
+        String detail = 'Error al guardar';
+        if (e is DioException) {
+          final resp = e.response?.data;
+          if (resp is Map && resp['message'] is Map) {
+            final inner = (resp['message'] as Map)['message'];
+            if (inner is List) {
+              detail = inner.join(', ');
+            } else if (inner is String) {
+              detail = inner;
+            }
+          } else if (resp is Map && resp['message'] is String) {
+            detail = resp['message'] as String;
+          }
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.expense),
+          SnackBar(
+            content: Text(detail),
+            backgroundColor: AppColors.expense,
+          ),
         );
       }
     } finally {
@@ -163,7 +200,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             // Cuenta
             accounts.when(
               data: (list) => _DropdownField(
-                hint: 'Cuenta',
+                hint: _type == 'TRANSFER' ? 'Cuenta origen (de)' : 'Cuenta',
                 value: _accountId,
                 items: list.map((a) => DropdownMenuItem(
                   value: a['id'] as String,
@@ -175,6 +212,33 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               error: (e, s) => const SizedBox.shrink(),
             ),
             const SizedBox(height: 16),
+
+            // Cuenta destino (solo para transferencias)
+            if (_type == 'TRANSFER') ...[
+              accounts.when(
+                data: (list) {
+                  // Excluir la cuenta origen para no transferir a la misma
+                  final destinations = list
+                      .where((a) => a['id'] != _accountId)
+                      .toList();
+                  return _DropdownField(
+                    hint: 'Cuenta destino (a)',
+                    value: _transferToAccountId,
+                    items: destinations
+                        .map((a) => DropdownMenuItem(
+                              value: a['id'] as String,
+                              child: Text(a['name'] as String),
+                            ))
+                        .toList(),
+                    onChanged: (v) =>
+                        setState(() => _transferToAccountId = v),
+                  );
+                },
+                loading: () => const LinearProgressIndicator(),
+                error: (e, s) => const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Categoría
             if (_type != 'TRANSFER')

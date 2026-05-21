@@ -35,10 +35,17 @@
       "Bash(curl -v http://localhost:3000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@test.com\",\"password\":\"test\"}')",
       "Bash(docker exec *)",
       "Bash(curl -v http://localhost:3000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@test.com\",\"password\":\"testtest1\"}')",
-      "Bash(PGPASSWORD='A1Wh9zjvcE' psql -h localhost -p 5433 -U jeissonmr -d finanzas_db -c \"SELECT 1;\")"
+      "Bash(PGPASSWORD='A1Wh9zjvcE' psql -h localhost -p 5433 -U jeissonmr -d finanzas_db -c \"SELECT 1;\")",
+      "Bash(flutter build *)",
+      "Bash(open /Users/jeissonmr/Documents/PROJECTS/finanzasJM/flutter/build/app/outputs/flutter-apk/)",
+      "Bash(mkdir -p /Users/jeissonmr/Documents/PROJECTS/finanzasJM/flutter/android/app/src/main/res/xml)",
+      "Bash(unzip -p app-arm64-v8a-release.apk)",
+      "Bash(~/Library/Android/sdk/platform-tools/adb devices *)",
+      "Bash(~/Library/Android/sdk/platform-tools/adb -s 89dace5f0c1d shell getprop ro.product.model)"
     ],
     "additionalDirectories": [
-      "/Users/jeissonmr/Documents/PROJECTS/finanzasJM/finanzasjm"
+      "/Users/jeissonmr/Documents/PROJECTS/finanzasJM/finanzasjm",
+      "/Users/jeissonmr/Documents/PROJECTS/finanzasJM/flutter/android/app/src/main/res"
     ]
   }
 }

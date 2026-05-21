@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../services/biometric_service.dart';
+import '../../features/auth/presentation/screens/biometric_lock_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
@@ -20,21 +22,34 @@ import '../../features/reports/presentation/screens/reports_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
+  final unlocked = ref.watch(sessionUnlockedProvider);
 
   return GoRouter(
     initialLocation: '/dashboard',
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final isLoggedIn = authState.valueOrNull ?? false;
-      final isAuthRoute = state.matchedLocation.startsWith('/login') ||
-          state.matchedLocation.startsWith('/register');
+      final loc = state.matchedLocation;
+      final isAuthRoute =
+          loc.startsWith('/login') || loc.startsWith('/register');
+      final isLockRoute = loc.startsWith('/lock');
 
       if (!isLoggedIn && !isAuthRoute) return '/login';
-      if (isLoggedIn && isAuthRoute) return '/dashboard';
+      if (isLoggedIn && isAuthRoute) {
+        // Si tiene biométrico activo, pasa por la pantalla de lock antes
+        final useBio = await BiometricService.instance.isEnabled();
+        if (useBio && !unlocked) return '/lock';
+        return '/dashboard';
+      }
+      if (isLoggedIn && !isLockRoute && !unlocked) {
+        final useBio = await BiometricService.instance.isEnabled();
+        if (useBio) return '/lock';
+      }
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (ctx, st) => const LoginScreen()),
       GoRoute(path: '/register', builder: (ctx, st) => const RegisterScreen()),
+      GoRoute(path: '/lock', builder: (ctx, st) => const BiometricLockScreen()),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [

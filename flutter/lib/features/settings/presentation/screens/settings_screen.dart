@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/theme_provider.dart';
 import '../../../../core/services/auto_register_pref.dart';
 import '../../../../core/services/bank_notification_listener.dart';
+import '../../../../core/services/biometric_service.dart';
 import '../../../../core/services/notifications_pref.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
@@ -42,6 +43,8 @@ class _SettingsBody extends ConsumerWidget {
     final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
     final notificationsOn = ref.watch(notificationsEnabledProvider);
     final autoRegisterOn = ref.watch(autoRegisterEnabledProvider);
+    final bioEnabledAsync = ref.watch(biometricEnabledProvider);
+    final bioSupportedAsync = ref.watch(biometricSupportedProvider);
 
     return ListView(
       children: [
@@ -132,6 +135,40 @@ class _SettingsBody extends ConsumerWidget {
             ],
           ),
           onTap: () => _changePassword(context, ref),
+        ),
+        // Biométrico — solo aparece si el dispositivo lo soporta
+        bioSupportedAsync.maybeWhen(
+          data: (supported) {
+            if (!supported) return const SizedBox.shrink();
+            final enabled = bioEnabledAsync.valueOrNull ?? false;
+            return ListTile(
+              leading: Icon(Icons.fingerprint,
+                  color: context.colors.textSecondary, size: 22),
+              title: const Text('Bloqueo con huella',
+                  style: TextStyle(fontSize: 14)),
+              subtitle: Text(
+                'Pide tu huella al abrir la app',
+                style: TextStyle(color: context.colors.textHint, fontSize: 12),
+              ),
+              trailing: Switch(
+                value: enabled,
+                activeThumbColor: Colors.white,
+                activeTrackColor: AppColors.primary,
+                onChanged: (v) async {
+                  if (v) {
+                    // Confirmar con huella antes de activar
+                    final ok = await BiometricService.instance.authenticate(
+                      reason: 'Confirma tu huella para activar el bloqueo',
+                    );
+                    if (!ok) return;
+                  }
+                  await BiometricService.instance.setEnabled(v);
+                  ref.invalidate(biometricEnabledProvider);
+                },
+              ),
+            );
+          },
+          orElse: () => const SizedBox.shrink(),
         ),
 
         const Divider(height: 0),

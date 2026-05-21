@@ -51,6 +51,9 @@ dependencies:
   # Reconocimiento de voz nativo (Android/iOS) para el asistente
   speech_to_text: ^7.0.0
 
+  # Autenticación biométrica (huella / face ID)
+  local_auth: ^2.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

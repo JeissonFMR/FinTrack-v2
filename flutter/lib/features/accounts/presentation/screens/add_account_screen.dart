@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -104,9 +105,24 @@ class _AddAccountScreenState extends ConsumerState<AddAccountScreen> {
     if (mounted) {
       final state = ref.read(createAccountProvider);
       if (state.hasError) {
+        final err = state.error;
+        String detail = 'Error al crear la cuenta';
+        if (err is DioException) {
+          final resp = err.response?.data;
+          if (resp is Map && resp['message'] is Map) {
+            final inner = (resp['message'] as Map)['message'];
+            if (inner is List) {
+              detail = inner.join(', ');
+            } else if (inner is String) {
+              detail = inner;
+            }
+          } else if (resp is Map && resp['message'] is String) {
+            detail = resp['message'] as String;
+          }
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al crear la cuenta'),
+          SnackBar(
+            content: Text(detail),
             backgroundColor: AppColors.expense,
           ),
         );

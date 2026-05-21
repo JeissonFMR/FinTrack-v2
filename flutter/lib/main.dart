@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -10,10 +11,26 @@ import 'core/services/notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es', null);
-  await NotificationService.instance.init();
-  await NotificationService.instance.requestPermissions();
-  await BackgroundCaptureService.initialize();
+
+  // Inicialización no-bloqueante de servicios opcionales.
+  // Si alguno falla, la app debe arrancar igual.
+  unawaited(_initOptionalServices());
+
   runApp(const ProviderScope(child: FinanzasApp()));
+}
+
+Future<void> _initOptionalServices() async {
+  try {
+    await NotificationService.instance.init();
+    await NotificationService.instance.requestPermissions();
+  } catch (_) {
+    // No queremos bloquear arranque por permisos de notificación
+  }
+  try {
+    await BackgroundCaptureService.initialize();
+  } catch (_) {
+    // El background service es opcional — si falla, la app sigue funcionando
+  }
 }
 
 class FinanzasApp extends ConsumerWidget {
