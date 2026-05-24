@@ -5,11 +5,13 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/storage/token_storage.dart';
+import '../../../../core/utils/category_icons.dart';
 import '../../../../core/utils/formatters.dart';
 
 class _MonthSummary {
   final Map<DateTime, _DayTotals> byDay;
-  const _MonthSummary(this.byDay);
+  final Map<DateTime, List<Map<String, dynamic>>> txsByDay;
+  const _MonthSummary({required this.byDay, required this.txsByDay});
 }
 
 class _DayTotals {
@@ -25,7 +27,9 @@ final monthCalendarProvider = FutureProvider.autoDispose
   final api = ref.read(apiClientProvider);
   final storage = ref.read(tokenStorageProvider);
   final workspaceId = await storage.getWorkspaceId();
-  if (workspaceId == null) return const _MonthSummary({});
+  if (workspaceId == null) {
+    return const _MonthSummary(byDay: {}, txsByDay: {});
+  }
 
   final from = DateTime(focused.year, focused.month, 1);
   final to = DateTime(focused.year, focused.month + 1, 0);
@@ -39,12 +43,16 @@ final monthCalendarProvider = FutureProvider.autoDispose
   final List items = res.data['data'] as List;
 
   final Map<DateTime, _DayTotals> byDay = {};
+  final Map<DateTime, List<Map<String, dynamic>>> txsByDay = {};
+
   for (final raw in items) {
-    final tx = raw as Map<String, dynamic>;
+    final tx = Map<String, dynamic>.from(raw as Map);
     final date = DateTime.parse(tx['date'] as String);
     final key = DateTime(date.year, date.month, date.day);
     final amount = Formatters.decimal(tx['amount']);
     final type = tx['type'] as String;
+
+    txsByDay.putIfAbsent(key, () => []).add(tx);
 
     final existing = byDay[key] ?? const _DayTotals(0, 0);
     if (type == 'INCOME') {
@@ -54,7 +62,7 @@ final monthCalendarProvider = FutureProvider.autoDispose
     }
   }
 
-  return _MonthSummary(byDay);
+  return _MonthSummary(byDay: byDay, txsByDay: txsByDay);
 });
 
 class CalendarScreen extends ConsumerStatefulWidget {
@@ -91,6 +99,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               : DateTime(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
           final selectedTotals =
               selectedKey != null ? summary.byDay[selectedKey] : null;
+          final selectedTxs =
+              selectedKey != null ? summary.txsByDay[selectedKey] : null;
 
           // Total del mes
           double monthIncome = 0;
@@ -217,6 +227,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 child: _DayDetail(
                   day: _selectedDay,
                   totals: selectedTotals,
+                  transactions: selectedTxs,
                 ),
               ),
             ],
@@ -267,7 +278,15 @@ class _MonthStat extends StatelessWidget {
 class _DayDetail extends ConsumerWidget {
   final DateTime? day;
   final _DayTotals? totals;
-  const _DayDetail({required this.day, required this.totals});
+  final List<Map<String, dynamic>>? transactions;
+  const _DayDetail({
+    required this.day,
+    required this.totals,
+    required this.transactions,
+  });
+
+  Color _hex(String hex) =>
+      Color(int.parse('FF${hex.replaceAll('#', '')}', radix: 16));
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -278,13 +297,15 @@ class _DayDetail extends ConsumerWidget {
       );
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final txs = transactions ?? const [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header con fecha y neto
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+          child: Row(
             children: [
               Text(
                 Formatters.date(day!),
@@ -307,40 +328,107 @@ class _DayDetail extends ConsumerWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
-          if (totals == null)
-            Text('Sin movimientos este día',
-                style: TextStyle(color: context.colors.textHint))
-          else
-            Row(
+        ),
+        if (totals != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
               children: [
                 Icon(Icons.arrow_downward_rounded,
-                    size: 16, color: AppColors.income),
+                    size: 14, color: AppColors.income),
                 Text(' ${Formatters.currency(totals!.income, symbol: '\$')}',
                     style: const TextStyle(
-                        color: AppColors.income, fontSize: 13)),
+                        color: AppColors.income, fontSize: 12)),
                 const SizedBox(width: 16),
                 Icon(Icons.arrow_upward_rounded,
-                    size: 16, color: AppColors.expense),
+                    size: 14, color: AppColors.expense),
                 Text(' ${Formatters.currency(totals!.expense, symbol: '\$')}',
                     style: const TextStyle(
-                        color: AppColors.expense, fontSize: 13)),
+                        color: AppColors.expense, fontSize: 12)),
               ],
             ),
-          const SizedBox(height: 12),
-          Center(
-            child: TextButton.icon(
-              onPressed: () {
-                final dayStr =
-                    day!.toIso8601String().split('T').first;
-                context.push('/transactions?date=$dayStr');
-              },
-              icon: const Icon(Icons.list_alt_rounded, size: 16),
-              label: const Text('Ver movimientos del día'),
-            ),
           ),
-        ],
-      ),
+        const SizedBox(height: 8),
+        const Divider(height: 1),
+        Expanded(
+          child: txs.isEmpty
+              ? Center(
+                  child: Text(
+                    'Sin movimientos este día',
+                    style: TextStyle(color: context.colors.textHint),
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  itemCount: txs.length,
+                  separatorBuilder: (_, i) => Divider(
+                    height: 0,
+                    indent: 64,
+                    color: context.colors.divider,
+                  ),
+                  itemBuilder: (ctx, i) {
+                    final tx = txs[i];
+                    final isIncome = tx['type'] == 'INCOME';
+                    final isTransfer = tx['type'] == 'TRANSFER';
+                    final amount = Formatters.decimal(tx['amount']);
+                    final category = tx['category'] as Map?;
+                    final color = category != null
+                        ? _hex(category['color'] as String? ?? '#6B7280')
+                        : (isIncome ? AppColors.income : AppColors.expense);
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 2),
+                      onTap: () => context.push(
+                        '/transactions/edit',
+                        extra: Map<String, dynamic>.from(tx),
+                      ),
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Icon(
+                          isTransfer
+                              ? Icons.swap_horiz_rounded
+                              : categoryIcon(category?['icon'] as String?),
+                          color: color,
+                          size: 16,
+                        ),
+                      ),
+                      title: Text(
+                        tx['description'] as String? ?? '',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w500, fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: category != null
+                          ? Text(
+                              category['name'] as String,
+                              style: TextStyle(
+                                  color: context.colors.textSecondary,
+                                  fontSize: 11),
+                            )
+                          : null,
+                      trailing: Text(
+                        '${isIncome ? '+' : isTransfer ? '' : '-'}${Formatters.currency(amount, symbol: '\$')}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: isIncome
+                              ? AppColors.income
+                              : isTransfer
+                                  ? AppColors.primary
+                                  : AppColors.expense,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }
