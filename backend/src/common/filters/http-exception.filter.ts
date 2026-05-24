@@ -29,9 +29,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // Log de errores no manejados (500) con stack trace para diagnosticar
     if (status >= 500) {
-      const err = exception as Error;
+      const err = exception as Error & {
+        code?: string;
+        meta?: unknown;
+      };
+      const prismaInfo = err?.code
+        ? ` [code=${err.code} meta=${JSON.stringify(err.meta)}]`
+        : '';
       this.logger.error(
-        `${request.method} ${request.url} → ${status} | ${err?.message ?? exception}`,
+        `${request.method} ${request.url} → ${status}${prismaInfo} | ${err?.message ?? exception}`,
         err?.stack,
       );
     }

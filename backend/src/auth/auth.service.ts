@@ -58,17 +58,32 @@ export class AuthService {
   }
 
   async refresh(token: string) {
-    const stored = await this.prisma.refreshToken.findUnique({ where: { token } });
+    // Defensa: si llega vacío o no string, no consultar BD
+    if (!token || typeof token !== 'string') {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    let stored;
+    try {
+      stored = await this.prisma.refreshToken.findUnique({ where: { token } });
+    } catch (_) {
+      // Cualquier error de Prisma en esta consulta es 401, no 500
+      throw new UnauthorizedException('Invalid refresh token');
+    }
 
     if (!stored || stored.expiresAt < new Date()) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    await this.prisma.refreshToken.delete({ where: { token } });
+    // deleteMany es idempotente: no falla si el registro ya no existe (race condition con refresh paralelo)
+    await this.prisma.refreshToken.deleteMany({ where: { token } });
 
-    const user = await this.prisma.user.findUniqueOrThrow({
+    const user = await this.prisma.user.findUnique({
       where: { id: stored.userId },
     });
+    if (!user) {
+      throw new UnauthorizedException('User no longer exists');
+    }
 
     return this.generateTokens(user.id, user.email);
   }

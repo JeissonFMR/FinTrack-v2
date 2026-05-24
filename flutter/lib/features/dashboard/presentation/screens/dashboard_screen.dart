@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../debts/presentation/providers/debts_provider.dart';
 import '../../../goals/presentation/providers/goals_provider.dart';
+import '../../../transactions/presentation/widgets/voice_tx_sheet.dart';
 import '../providers/dashboard_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -134,12 +135,30 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/transactions/add'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        child: const Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: 'voice_fab',
+            onPressed: () => VoiceTxSheet.show(context),
+            backgroundColor: AppColors.expense,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            tooltip: 'Registrar por voz',
+            child: const Icon(Icons.mic),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: 'add_fab',
+            onPressed: () => context.push('/transactions/add'),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            tooltip: 'Nuevo movimiento',
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }

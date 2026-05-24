@@ -123,6 +123,152 @@ export class LlmService {
     this.model = this.config.get<string>('LLM_MODEL') ?? 'llama-3.1-8b-instant';
   }
 
+  /**
+   * Parser de transacciones por voz. El usuario habla algo libre como
+   * "Gasté 25 mil en almuerzo en Crepes" o "Recibí 3 millones de salario".
+   * Devuelve la transacción estructurada con categoría sugerida.
+   */
+  async parseVoiceTransaction(
+    text: string,
+    categories: CategoryHint[] = [],
+    accounts: AccountHint[] = [],
+  ): Promise<ParsedNotification> {
+    const today = new Date().toISOString().split('T')[0];
+
+    const catList = categories.length === 0
+      ? 'El usuario no tiene categorías. Devuelve categoryId: null.'
+      : `CATEGORÍAS DEL USUARIO (elige una; si ninguna encaja, devuelve null):
+${categories.map((c) => `- id="${c.id}" → "${c.name}" (${c.type})`).join('\n')}`;
+
+    const accList = accounts.length === 0
+      ? 'El usuario no tiene cuentas registradas.'
+      : `CUENTAS DEL USUARIO:
+${accounts.map((a) => `- id="${a.id}" → "${a.name}"`).join('\n')}`;
+
+    const systemPrompt = `Eres un asistente que convierte la voz del usuario en una transacción financiera estructurada.
+
+El usuario habla libre, por ejemplo:
+- "Gasté 25 mil en almuerzo"
+- "20.000 en Uber"
+- "Recibí 3 millones de salario"
+- "Pagué 80 mil de gasolina en Terpel"
+- "Compré pan en la panadería por 5 mil pesos"
+
+REGLAS:
+- Detecta monto en cualquier formato: "25 mil" = 25000, "3 millones" = 3000000, "5k" = 5000, "1.5 millones" = 1500000.
+- Determina type:
+  - EXPENSE si menciona gasté, pagué, compré, salió, costó
+  - INCOME si menciona recibí, me llegó, me pagaron, salario, transferencia recibida
+  - TRANSFER si menciona "pasé/transferí X a Y" entre cuentas propias
+- merchant/description: extrae lo más informativo posible.
+- date: usa "${today}" siempre, a menos que el usuario diga "ayer" o una fecha explícita.
+- ${catList}
+- ${accList}
+
+Para categoryId — elige el id (NO inventes) basándote en el contexto del comercio/descripción:
+
+🍽️ ALIMENTACIÓN — palabras: almuerzo, desayuno, cena, comida, mercado, restaurante, panadería, café, refrigerio, snack, rappi, mcdonalds, dominos, kfc, exito, jumbo, ara, d1, olimpica, carulla, súper, supermercado
+🚗 TRANSPORTE — palabras: uber, didi, taxi, cabify, gasolina, terpel, esso, mio, transmilenio, peaje, tiquete bus, sitp, parqueadero
+🏠 VIVIENDA — palabras: arriendo, administración, EPM, gas, agua, luz, codensa, energía
+💊 SALUD — palabras: médico, farmacia, drogas, droguería, EPS, doctor, hospital, dentista, cita médica, gimnasio, gym
+🎬 ENTRETENIMIENTO — palabras: netflix, spotify, hbo, disney, cine, película, concierto, juego, playstation
+📚 EDUCACIÓN — palabras: universidad, colegio, curso, libro, platzi, coursera
+👕 ROPA — palabras: ropa, zapatos, zara, h&m, falabella, camiseta
+🔌 SERVICIOS — palabras: internet, claro, movistar, teléfono, datos, plan celular
+💵 SALARIO — palabras: salario, nómina, sueldo, pago mensual, quincena
+💼 FREELANCE — palabras: freelance, proyecto, consultoría
+
+PROCESO:
+1. Lee el texto del usuario
+2. Busca palabras clave de la lista arriba
+3. Mapea a la categoría correspondiente
+4. Busca esa categoría EXACTAMENTE en la lista del usuario (por nombre)
+5. Copia su id literal en categoryId
+
+EJEMPLOS CONCRETOS:
+- "gasté 30 mil en almuerzo" → almuerzo está en ALIMENTACIÓN → busca categoría con name="Alimentación" → su id
+- "Uber 15 mil" → uber está en TRANSPORTE → busca categoría con name="Transporte" → su id
+- "compré tenis" → tenis (zapatos) está en ROPA → busca "Ropa"
+- "vacuna del perro 80 mil" → no encaja en ninguna categoría obvia → categoryId: null, categorySuggestion: "Mascotas"
+
+Si dudas o ninguna categoría encaja claramente, devuelve categoryId: null.
+
+Para accountId:
+- Si el usuario MENCIONA una cuenta (ej: "en mi davivienda", "con la tarjeta de crédito", "de mi nequi"), busca esa cuenta por nombre en la lista del usuario.
+- Si no menciona ninguna, devuelve accountId: null.
+
+RESPONDE SOLO JSON con esta estructura:
+{
+  "isTransaction": boolean,
+  "type": "EXPENSE" | "INCOME" | "TRANSFER" | null,
+  "amount": number | null,
+  "merchant": string | null,
+  "description": string | null,
+  "date": string | null,
+  "categoryId": string | null,
+  "categorySuggestion": string | null,
+  "accountId": string | null,
+  "confidence": number,
+  "reason": string
+}
+
+Si "isTransaction" es false (no entendiste o no es una transacción), llena "reason".
+Si no hay categoryId pero crees que debería existir una categoría, sugiere su nombre en "categorySuggestion" (ej: "Salud", "Mascotas").`;
+
+    try {
+      // Usar el modelo grande (70B) para parseo de voz — mejor entendimiento
+      // que el 8B y maneja mejor variaciones de español hablado.
+      const voiceModel =
+        this.config.get<string>('LLM_MODEL_VOICE') ??
+        this.config.get<string>('LLM_MODEL_SQL') ??
+        'llama-3.3-70b-versatile';
+
+      const completion = await this.client.chat.completions.create({
+        model: voiceModel,
+        temperature: 0.1,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: text },
+        ],
+      });
+
+      const raw = completion.choices[0]?.message?.content ?? '{}';
+      this.logger.log(`Voice (${voiceModel}) parse raw: ${raw}`);
+      const parsed = JSON.parse(raw) as ParsedNotification & {
+        categorySuggestion?: string;
+      };
+
+      if (typeof parsed.amount === 'string') {
+        parsed.amount = Number((parsed.amount as unknown as string).replace(/[^\d.]/g, ''));
+      }
+      if (parsed.confidence == null) parsed.confidence = 0.5;
+
+      // Validar categoryId
+      if (parsed.categoryId && !categories.find((c) => c.id === parsed.categoryId)) {
+        parsed.categoryId = null;
+      }
+      // Validar accountId
+      if (parsed.accountId && !accounts.find((a) => a.id === parsed.accountId)) {
+        parsed.accountId = null;
+      }
+
+      return parsed;
+    } catch (err) {
+      this.logger.error(`Error parseando voz: ${(err as Error).message}`);
+      return {
+        isTransaction: false,
+        confidence: 0,
+        reason: 'No entendí, intenta de nuevo',
+      };
+    }
+  }
+
+  /** Helper: usa el modelo de SQL si está definido, sino el de respuesta. */
+  private sqlOrSql(): string {
+    return this.config.get<string>('LLM_MODEL') ?? 'llama-3.1-8b-instant';
+  }
+
   async parseNotification(
     input: {
       packageName?: string;

@@ -39,6 +39,10 @@ class _AuthInterceptor extends Interceptor {
   final TokenStorage _storage;
   final Dio _dio;
 
+  /// Future compartido entre todas las requests que recibieron 401 al mismo
+  /// tiempo. Solo se hace UN refresh y los demás esperan ese resultado.
+  Future<String?>? _refreshing;
+
   _AuthInterceptor(this._storage, this._dio);
 
   @override
@@ -58,23 +62,48 @@ class _AuthInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (err.response?.statusCode == 401) {
-      final refreshToken = await _storage.getRefreshToken();
-      if (refreshToken != null) {
+    // No intentar refresh en el propio endpoint de refresh
+    final path = err.requestOptions.path;
+    if (err.response?.statusCode == 401 && !path.contains('/auth/refresh')) {
+      final newAccess = await _getNewAccessToken();
+      if (newAccess != null) {
+        err.requestOptions.headers['Authorization'] = 'Bearer $newAccess';
         try {
-          final res = await _dio.post('/auth/refresh', data: {'refreshToken': refreshToken});
-          final newAccess = res.data['accessToken'] as String;
-          final newRefresh = res.data['refreshToken'] as String;
-          await _storage.saveTokens(accessToken: newAccess, refreshToken: newRefresh);
-
-          err.requestOptions.headers['Authorization'] = 'Bearer $newAccess';
           final retried = await _dio.fetch(err.requestOptions);
           return handler.resolve(retried);
-        } catch (_) {
-          await _storage.clear();
+        } catch (e) {
+          // El retry también falló, propagar
         }
+      } else {
+        // Refresh fallido: limpiar tokens (forzar re-login)
+        await _storage.clear();
       }
     }
     handler.next(err);
+  }
+
+  /// Coordina los refreshes: si hay uno en curso, lo comparte;
+  /// si no, dispara uno y los demás esperan.
+  Future<String?> _getNewAccessToken() {
+    return _refreshing ??= _doRefresh().whenComplete(() {
+      _refreshing = null;
+    });
+  }
+
+  Future<String?> _doRefresh() async {
+    final refreshToken = await _storage.getRefreshToken();
+    if (refreshToken == null) return null;
+    try {
+      final res = await _dio.post(
+        '/auth/refresh',
+        data: {'refreshToken': refreshToken},
+      );
+      final newAccess = res.data['accessToken'] as String;
+      final newRefresh = res.data['refreshToken'] as String;
+      await _storage.saveTokens(accessToken: newAccess, refreshToken: newRefresh);
+      return newAccess;
+    } catch (_) {
+      return null;
+    }
   }
 }

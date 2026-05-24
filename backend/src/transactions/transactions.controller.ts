@@ -15,6 +15,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { FilterTransactionDto } from './dto/filter-transaction.dto';
 import { ParseNotificationDto } from './dto/parse-notification.dto';
+import { ParseVoiceDto } from './dto/parse-voice.dto';
 import { TransactionsService } from './transactions.service';
 import { AccountHint, CategoryHint, LlmService } from '../ai/llm.service';
 import { CategoriesService } from '../categories/categories.service';
@@ -50,6 +51,28 @@ export class TransactionsController {
       cardLast4: string | null;
     }>).map((a) => ({ id: a.id, name: a.name, cardLast4: a.cardLast4 }));
     return this.llmService.parseNotification(dto, catHints, accHints);
+  }
+
+  @Post('parse-voice')
+  async parseVoice(
+    @Param('workspaceId') workspaceId: string,
+    @Body() dto: ParseVoiceDto,
+  ) {
+    const [cats, accs] = await Promise.all([
+      this.categoriesService.findAll(workspaceId),
+      this.accountsService.findAll(workspaceId),
+    ]);
+    const catHints: CategoryHint[] = (cats as Array<{
+      id: string;
+      name: string;
+      type: 'INCOME' | 'EXPENSE' | 'BOTH';
+    }>).map((c) => ({ id: c.id, name: c.name, type: c.type }));
+    const accHints: AccountHint[] = (accs as Array<{
+      id: string;
+      name: string;
+      cardLast4: string | null;
+    }>).map((a) => ({ id: a.id, name: a.name, cardLast4: a.cardLast4 }));
+    return this.llmService.parseVoiceTransaction(dto.text, catHints, accHints);
   }
 
   @Get()

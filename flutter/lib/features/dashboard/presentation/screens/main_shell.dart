@@ -145,6 +145,12 @@ class _MainShellState extends ConsumerState<MainShell> {
             ),
           ),
           IconButton(
+            onPressed: () => context.push('/calendar'),
+            icon: Icon(Icons.calendar_month_outlined,
+                color: context.colors.textSecondary),
+            tooltip: 'Calendario',
+          ),
+          IconButton(
             onPressed: () => context.push('/reports'),
             icon: Icon(Icons.bar_chart_rounded,
                 color: context.colors.textSecondary),
